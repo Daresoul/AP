@@ -1,0 +1,84 @@
+Technicalities:
+  - Problems with packaging/build, as reported by OnlineTA:
+    - Code packed up incorrectly (missing, misplaced, or altered
+      files/directories). Please make sure that your submitted
+      code.zip has the same structure as the handed-out one,
+      and only modify the files you are asked to modify.
+  - Some significant or persistent style issues noted by OnlineTA:
+    - Warnings about missing patterns in function definitions or
+      `case`-expressions should generally be taken quite seriously. It's
+      normally recommended to explicitly cover non-exhaustive matches for
+      "impossible" cases by an informative `error` message, e.g.
+      `case l of [] -> error "impossible: empty list in Foo"; (h:t) -> ...`.
+    = Several warnings about unused variables in bindings /
+      patterns. Consider using `_varname`, or simply `_`, for variables
+      whose values you deliberately don't use; this helps the compiler
+      help you, by pointing out those few cases in which you actually
+      did mistype the name of a variable and ended up referencing
+      another one than the one you meant.
+    - Heavy warnings about redundant brackets. While a few nominally
+      redundant parentheses may be harmless, or even beneficent in
+      specific circumstances, generally do not add parentheses in cases
+      where they are clearly unneeded, such as around individual
+      variables and argument-less constructors: `(x)`, `([])`, `(True)`,
+      around subexpressions inherently bracketed by the surrounding
+      context: `if (x > 0) then ...`, `case (f x) of ...`, or around
+      curried applications: `(f x y)`, unless that application is itself
+      a function (not operator) argument. They just clutter your code
+      and make it harder to read.
+  + You have listings of your code as an appendix in the report. Good!
+
+Warmup:
+  - Several issues:
+    - You've recursively defined your `RWSP` monad such that bind (`>>=`) never
+      terminates. You also have some issues with using the wrong variables as
+      `runRWSP` arguments, but this is the most significant one.
+    - `RWSE` is not implemented.
+
+Main - Code:
+  - Comp monad instance (return, >>=): some problems.
+    - You should propagate the output data (what you are currently doing with
+      `concat`) even in the case of an error.
+  + Comp monad operations (abort, look, withBinding, output): fine.
+  - Auxilary functions (truthy, operate, apply): major problems.
+    - Why are you mapping over the `ListVal` in `truthy`? The only definition
+      for a `ListVal` in regards to `truthy` is that it is false if empty, true
+      otherwise, regardless of its contents.
+    - You also seem to be inventing your own definitions for e.g.
+      `operate Plus`, where you also accept strings for concatenation: this is
+      an error, as the assignment text explicitly states that both arguments
+      are required to be integers, otherwise an error is signaled.
+    - For the case of `Eq`, `Value` derives from the `Eq` class, so you can
+      just use `==` for the comparison.
+  - Main interpreter functions (eval, exec, execute): not implemented.
+
+Main - Testing:
+  + Tests are automated and runnable by `stack test`. Good!
+  - Your tests are reasonably comprehensive in comparison to what you have
+    implemented, but most of the assumptions that the tests are based on are
+    wrong, see above.
+
+Main - Report:
+  - Your report should have a distinct design/implementation section. It should
+    _not_ be part of the assessment section.
+  + Reasonable overview of main design/implementation choices (of those that
+    have been implemented).
+    = While the assignment text does not ask you to prove that your
+      "instance Monad Comp" actually satisfies the monad laws, it's
+      still considered good style to at least consider the issue
+      in the report, and mention any reasons you have for believing
+      that you have actually defined a "real" monad, and not just
+      some functions with the correct types.
+    + Good discussion of the `range` and `print` functionality in `apply`.
+  = Reasonably comprehensive and justified assessment, but with no clear
+    explanation of testing strategy and results.
+  = You did not mention how to execute your tests in the report.
+
+Overall score: 1 / 6 (Failed)
+  * There is unfortunately too much missing for a resubmission to be possible.
+    Not only is there the main task which is `eval`, but there is also the
+    fixing of `operate` and `truthy`, as well as the Warmup-part.
+  * In any case, it would be good to try and fix the issues if you can. If it
+  	turns out that you do not have enough assignments passed to qualify for the
+	exam, we may be able to make an exception and allow a resubmission (but no
+	promises).

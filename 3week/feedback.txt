@@ -1,0 +1,195 @@
+*** Submission ***
+
++ No packaging/building issues.
+
+- Some significant or persistent style issues noted by OnlineTA:
+
+  - Warnings about non-exhaustive patterns in function definitions or
+    `case`-expressions should generally be taken quite seriously. It is
+    generally recommended to explicitly cover non-exhaustive matches for
+    "impossible" cases by an informative `error` message, e.g.
+    `case l of [] -> error "impossible: empty list in Foo"; (h:t) -> ...`.
+
+  = Several warnings about unused variables in bindings/patterns.
+    Consider using `_varname`, or simply `_`, for variables whose
+    values you deliberately don't use; this helps the compiler help
+    you, by pointing out those few cases in which you actually did
+    mistype the name of a variable and ended up referencing another
+    one than the one you meant.
+
+  = Some warnings about redundant brackets. While a few nominally
+    redundant parentheses may be harmless, or even helpful in specific
+    circumstances, you should generally not add parentheses in cases
+    where they are uniformly unneeded, such as in `(f x) + (g y)` or
+    `(f x) y`. Function-application in Haskell is left-associative and
+    groups tighter than _all_ infix operators, so the extra
+    parentheses just clutter your code and make it harder to read.
+
+- Your report document should be called exactly `report.pdf`, as
+  specified in the assignment text and submission instructions.
+
+- Please remember to include listings of your code as an appendix in
+  the report.
+
++ You have included a timesheet. Good!
+
+*** Warmup ***
+
+= Code looks almost OK.
+
+  - You are missing the `Writer` part of your monad, which means that it
+    does not append the things you write (using `tellP`) to the old writeData.
+    Actually, the stuff that you do in `tellP` should have been in the `>>=`
+    implementation instead. If it doesn't make sense, come ask your TAs on tuesday :)
+
+  = In defining the Monad instance for RWSE, and the RWSE-specific
+    operations, consider how you could exploit that `(Either ErrorData)`
+    is itself a monad, to write the RWSE components more generically,
+    e.g., as
+      `return a = RWSE (\r s -> return (a, mempty, s))`
+    instead of
+      `return a = RWSE (\r s -> Right (a, mempty, s))`.
+    Similarly, in `>>=`, you have a code fragment of the form
+      `case <exp1> of Left e -> Left e; Right p -> <exp2>`
+    which could have been written as simply
+      `do p <- <exp1>; <exp2>`.
+
+    That way, if we were to replace, e.g., `Either ErrorData` with
+    `Maybe` in RWSE, your definitions of the monad components would
+    still work without change.
+
+*** Main task: code ***
+
++ Comp monad instance (return, >>=): fine.
+
++ Comp monad operations (abort, look, withBinding, output): fine.
+
+  = In your monad definition, you should preferably use `mempty`
+    and `<>` instead of `""`/`[]` and `++`, because the former will
+    also work if you take WriteData to be another Monoid than String.
+
+  = And you are _mostly_ using only those operations in the rest of
+    the program, except for a few places (apply print) where you
+    unnecessarily break the monadic abstraction by directly invoking
+    Comp and/or runComp to express some computation that could just as
+    well have been expressed using the four official operations (and
+    return/>>=) of the Comp monad. Note that if the Comp monad had
+    been in a separate module (not exporting the Comp constructor),
+    your code would not even compile.
+
++ Auxiliary functions (truthy, operate, apply): almost fine
+
+  - However, your code for apply (strings specifically) is very long
+    and unecessarily complicated. Try taking a look at the Haskell function
+    `intercalate` ;) And also, you should use `tellP` to put it into your monad.
+
+  = You apparently implemented the simple printer variant (i.e., never
+    quoting string constants, even inside lists). That's perfectly
+    fine, as long as you explicitly state it as a deliberate design
+    choice in the report.
+
+= Main interpreter functions (eval, exec, execute): not quite, some problems
+
+  = Your `eval` handles some use cases of comprehensions, but
+    fails for other ones. That's not good, but above the threshold for passing.
+    Actually, your implementation fails for the empty list.
+    Also, you don't need to check for errors in the If-part when you also
+    do it in the CCFor part :)
+
+  - Your implementation of exec only work for programs with 1 statement.
+    Consider how to ensure that all statements in the list are evaluated.
+
+  - You are missing execute entirely, so your interpreter doesn't
+    run even the simplest programs. Actually, execute is quite simple, mostly
+    just calling `exec`, so I think you could easily solve that part.
+
+*** Main task: testing ***
+
++ Tests are automated and runnable by `stack test`. Good!
+
+  = Somewhat minimal coverage, but acceptable.
+
+  - You have insufficient *negative* tests, i.e., that inputs that
+    should result in some specific error (bad variable, division by zero,
+    etc.) actually do so.
+
+  = Some of your "expected" results in test cases are overly long or
+    complicated, and it's not clear how they were obtained.
+
+    Note that the expected result in a test case can itself
+    be computed rather than hand-written. For example, if you
+    are testing Boa comprehensions, instead of something like
+    `... @?= ListVal [IntVal 1, IntVal 4, IntVal 9, ..., IntVal 100]`,
+    it's much preferable to write it as
+    `... @?= ListVal [IntVal (i*i) | i <- [1..10]]`.
+
+  = Maybe you would like to test some of the monad laws? :)))
+
+  = Your tests look somewhat disorganized, and it's not always clear
+    how thoroughly the various parts of your code have been tested.
+    Consider grouping related tests together (possibly in a suitably
+    named subtree if you use the recommended Tasty framework).
+
+  = Your test suite does not invoke some of the more obscure
+    parts of your code, let alone test them properly. Consider using
+    `stack test --coverage` (and look at the resulting annotated
+    program listing) to see what parts you missed.
+
+*** Main task: report ***
+
+  + Reasonable overview of main design/implementation choices.
+
+    = While the assignment text does not ask you to prove that your
+      "instance Monad Comp" actually satisfies the monad laws, it's
+      still considered good style to at least consider the issue
+      in the report, and mention any reasons you have for believing
+      that you have actually defined a "real" monad, and not just
+      some functions with the correct types.
+
+    = At least a brief discussion of how you implemented both the
+      `range` and `print` functionality of `apply` would have been
+      appropriate.
+
+    + Good explanation of how you implemented comprehensions in `eval`,
+      and discussion of how to improve it.
+
+  + Reasonably comprehensive and justified assessment, with a
+    satisfactory explanation of testing strategy and results.
+
+    + You have divided the assessment up into the suggested
+      categories. Good!
+
+    + Completeness: fine
+
+      = You didn't implement everything, but at least it's clear from
+        your report what you did and didn't do,
+
+        + And your ideas for the missing parts generally make sense.
+
+  + Correctness: fine
+
+    + You have some minor correctness issues, but those are clearly
+      identified in the assessment. Good!
+
+  + Efficiency: fine
+
+      + Your code seems to be largely as efficient as one could expect.
+
+  + Robustness: fine
+
+    + Robustness isn't really a big concern for this assignment, since
+      there isn't much opportunity to invoke the required functions on
+      arguments for which their behavior is not specified.
+
+  + Maintainability: fine
+
+    = Your code has some clear maintainability issues, but you are aware
+      of them.
+
+*** Overall score: 2 / 6 ***
+    **RESUBMISSION**
+    Nice work, but not quite there.
+    For the resubmission I would like you to spend 2 hours EITHER getting
+    the implementation of `exec` and `execute` correctly, OR fix your
+    list comprehensions. I do not expect you to do both, but if you feel
+    like giving it a go you are very welcome!

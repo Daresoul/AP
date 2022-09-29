@@ -77,6 +77,13 @@ expr' e = do    op <- operator
                 expr' (Oper op e e2)
         <|> return e
 
+expr'' :: Exp -> GenParser Char st Exp
+expr'' e = do    op <- operator
+                spaces
+                e2 <- term
+                expr' (Oper op e e2)
+        <|> return e
+
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
                         e <- expr
@@ -193,14 +200,16 @@ stringConst = do    spaces
                     --e1 <- many1 (satisfy (\c -> isAscii c && c /= stringChar))
 
 stringconstIntermediate :: String -> GenParser Char st Exp
-stringconstIntermediate s = do  string "\\\\"
-                                return (Const (StringVal (s ++ "\\")))
-                        -- <|> do  string "\\'"
-                        --         stringconstIntermediate (s ++ ['\''])
-                        <|> do  s1 <- satisfy (\c -> isAscii c && c /= stringChar)
-                                stringconstIntermediate (s ++ [s1])
-                        -- <|> do  char stringChar
-                        --         return (Const (StringVal s))                      
+stringconstIntermediate s = try (do string "\\n"
+                                    stringconstIntermediate (s ++ "<-"))
+                        <|> try (do string "\\\\"
+                                    stringconstIntermediate (s ++ "\\"))
+                        <|> try (do string "\\'"
+                                    stringconstIntermediate (s ++ ['\'']))
+                        <|> try (do s1 <- satisfy (\c -> isAscii c && c /= stringChar)
+                                    stringconstIntermediate (s ++ [s1]))
+                        <|> do  char stringChar
+                                return (Const (StringVal s))                      
 
 numConst :: GenParser Char st Exp
 numConst = do   e1 <- many1 (satisfy (\c -> isDigit c))

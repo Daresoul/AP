@@ -1,0 +1,12 @@
+/Users/tomato/.stack/programs/aarch64-osx/ghc-9.0.2/lib/ghc-9.0.2/lib/aarch64-osx-ghc-9.0.2/rts-1.0.2/include/ghcversion.h:
+  hash: 3b6c0f16983344ce12525816947d892da98bc96f17a664531494f515b9356c81
+/Users/tomato/git/AP/week1/code2/code/part2/arithmetic.cabal:
+  hash: 6e95e920b90a8fee15cdd79fb1f2e86e6ad22dd2c467a585d53110ace2461dd2
+/Users/tomato/git/AP/week1/code2/code/part2/package.yaml:
+  hash: 8a0bbe1bbcc1238771401e042cbdbef7f812b216fdd8c7fc0d494c1dd700ad1e
+/Users/tomato/git/AP/week1/code2/code/part2/tests/Test.hs:
+  hash: 4826ebd8111685740db65b7f27963ec3bde613efc22d467208932c1ce0118c6d
+? /Users/tomato/git/AP/week1/code2/code/part2/.stack-work/dist/aarch64-osx/Cabal-3.4.1.0/build/my-test-suite/autogen/cabal_macros.h
+: hash: 01b71b1c070d7c8e6cfe08a259549658f9a55066836cd758344fa67ce70ba8b7
+? /Users/tomato/git/AP/week1/code2/code/part2/.stack-work/dist/aarch64-osx/Cabal-3.4.1.0/build/my-test-suite/autogen/Paths_arithmetic.hs
+: hash: 23adae072ad488b332f4b5e077cc77f00649b10cea5b90ddba079f221996e669
