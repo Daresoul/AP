@@ -23,6 +23,9 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "Minus -2-2" $ parseString "-2-2" @?= Right [SExp (Oper Minus (Const (IntVal (-2))) (Const (IntVal 2)))],
    testCase "Minus (-2)(-2)" $ parseString "(-2)-(-2)" @?= Right [SExp (Oper Minus (Const (IntVal (-2))) (Const (IntVal (-2))))],
    testCase "Minus left asso 2-2-2" $ parseString "2-2-2" @?= Right [SExp (Oper Minus (Oper Minus (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))],  
+   testCase "Minus Plus left asso 2-2+2" $ parseString "2-2+2" @?= Right [SExp (Oper Plus (Oper Minus (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))],  
+   testCase "Plus Minus left asso 2+2-2" $ parseString "2+2-2" @?= Right [SExp (Oper Minus (Oper Plus (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))],  
+   
    ]
 
 -- testingFuncEval :: TestTree
