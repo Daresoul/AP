@@ -164,11 +164,11 @@ idenVar s = do  spaces
                 return (Var s)
 
 identString :: GenParser Char st String
-identString = try (do   c <- satisfy (\c -> isAlphaNum c || c == '_')
+identString = try (do   c <- satisfy (\c -> isLetter c || c == '_')
                         s <- many1 (satisfy (\c -> isAlphaNum c || c == '_' || isDigit c))
                         if isInList ([c] ++ s) keywords then return ""
                                                         else return ([c] ++ s))
-            <|> do  c <- satisfy (\c -> isAlphaNum c || c == '_')
+            <|> do  c <- satisfy (\c -> isLetter c || c == '_')
                     return [c]
 
 list :: GenParser Char st Exp
@@ -214,7 +214,7 @@ stringconstIntermediate s = try (do string "\\n"
                         <|> try (do s1 <- satisfy (\c -> isAscii c && c /= stringChar)
                                     stringconstIntermediate (s ++ [s1]))
                         <|> do  char stringChar
-                                return (Const (StringVal s))                      
+                                return (Const (StringVal s))             
 
 numConst :: GenParser Char st Exp
 numConst = do   e1 <- many1 (satisfy (\c -> isDigit c))
