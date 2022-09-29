@@ -63,7 +63,7 @@ term = try notExp
     <|> try ident
 
 expr :: GenParser Char st Exp
-expr = do   t1 <- term 
+expr = do   t1 <- term
             expr' t1
     <|> term
     -- indeholder alt i definationen 1+1+2
@@ -77,12 +77,15 @@ expr' e = do    op <- operator
                 expr' (Oper op e e2)
         <|> return e
 
-expr'' :: Exp -> GenParser Char st Exp
-expr'' e = do    op <- operator
-                spaces
-                e2 <- term
-                expr' (Oper op e e2)
-        <|> return e
+-- Right [SExp (Oper Times (Oper Plus (Const (IntVal 2)) (Const (IntVal 3))) (Var "x"))]
+
+-- expr'' :: Exp -> GenParser Char st Exp
+-- expr'' e = do   op <- operatorHigherPrecedence
+--                 spaces
+--                 e2 <- term
+--                 expr'' (Oper op e e2)
+--         <|> term
+--         <|> return e
 
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
@@ -226,4 +229,12 @@ operator = do   char '+'
     <|> do  char '-'
             spaces
             return Minus
+
+-- operatorHigherPrecedence :: GenParser Char st Op
+-- operatorHigherPrecedence = do   char '*'
+--                                 spaces
+--                                 return Times
+--     <|> do  char '/'
+--             spaces
+--             return Div
     

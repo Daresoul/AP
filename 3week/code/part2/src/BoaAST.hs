@@ -20,9 +20,6 @@ data Exp =
   | Compr Exp [CClause]
   deriving (Eq, Show, Read)
 
-  --Compr (Const (IntVal 1)) [CCFor "i" (Const (IntVal 1)), CCIf (Const (IntVal 1))]
-  --Compr (Const (IntVal 1)) [CCFor "x" (Const (IntVal 1)), CCIf (Const (IntVal 1))]
-
 type VName = String
 type FName = String
 
