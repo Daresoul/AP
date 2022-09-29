@@ -1,0 +1,69 @@
+  Program -> Stmts
+    Stmts -> Stmt Stmts'
+     Stmt -> ident = Expr
+           | Expr
+     Expr -> [ Expr'' Expr'''
+           | ident Expr' Expr'''
+           | numConst Expr'''
+           | stringConst Expr'''
+           | None Expr'''
+           | True Expr'''
+           | False Expr'''
+           | not Expr Expr'''
+           | ( Expr ) Expr'''
+     Oper -> +
+           | -
+           | *
+           | //
+           | %
+           | ==
+           | !=
+           | <
+           | <=
+           | >
+           | >=
+           | in
+           | not in
+ForClause -> for ident in Expr
+ IfClause -> if Expr
+  Clausez -> ϵ
+           | for ident in Expr Clausez
+           | if Expr Clausez
+    Exprz -> ϵ
+           | Exprs
+    Exprs -> [ Expr'' Expr''' Exprs'
+           | ident Expr' Expr''' Exprs'
+           | numConst Expr''' Exprs'
+           | stringConst Expr''' Exprs'
+           | None Expr''' Exprs'
+           | True Expr''' Exprs'
+           | False Expr''' Exprs'
+           | not Expr Expr''' Exprs'
+           | ( Expr ) Expr''' Exprs'
+   Stmts' -> ϵ
+           | ; Stmts
+    Expr' -> ϵ
+           | ( Exprz )
+   Expr'' -> ϵ ]
+           | [ Expr'' Expr''' Exprs' ]
+           | ident Expr' Expr''' Exprs' ]
+           | numConst Expr''' Exprs' ]
+           | stringConst Expr''' Exprs' ]
+           | None Expr''' Exprs' ]
+           | True Expr''' Exprs' ]
+           | False Expr''' Exprs' ]
+           | not Expr Expr''' Exprs' ]
+           | ( Expr ) Expr''' Exprs' ]
+           | [ Expr'' Expr''' ForClause Clausez ]
+           | ident Expr' Expr''' ForClause Clausez ]
+           | numConst Expr''' ForClause Clausez ]
+           | stringConst Expr''' ForClause Clausez ]
+           | None Expr''' ForClause Clausez ]
+           | True Expr''' ForClause Clausez ]
+           | False Expr''' ForClause Clausez ]
+           | not Expr Expr''' ForClause Clausez ]
+           | ( Expr ) Expr''' ForClause Clausez ]
+   Exprs' -> ϵ
+           | , Exprs
+  Expr''' -> Oper Expr Expr'''
+           | ϵ
