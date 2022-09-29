@@ -26,8 +26,8 @@ readCharsFromString [] = return ()
 readCharsFromString (s:sx) = do     char s
                                     readCharsFromString sx
 
-isInList :: String -> [String] -> Bool
-isInList s list = any (\k -> s == k ) list
+-- isInList :: Eq => a -> [a] -> Bool
+-- isInList s list = any (\k -> s == k ) list
                             
                             
 -- checkgarbage :: GenParser Char () Char 
@@ -67,25 +67,39 @@ term = try notExp
     <|> try stringConst
 
 expr :: GenParser Char st Exp
-expr = do    t1 <- term
-             addOp t1
+expr = do    spaces
+             t1 <- term
+             multOp t1
      <|> try term
 
 addOp :: Exp -> GenParser Char st Exp
-addOp e = do    op <- operator
-                spaces
-                e2 <- term
-                addOp (Oper op e e2)
+addOp e = try (do       op <- operator
+                        spaces
+                        e2 <- term
+                        multOp (Oper op e e2))
         <|> return e
 
 -- Right [SExp (Oper Times (Oper Plus (Const (IntVal 2)) (Const (IntVal 3))) (Var "x"))]
 
--- multOp :: Exp -> GenParser Char st Exp
--- multOp e = do   op <- operatorHigherPrecedence
---                 spaces
---                 e2 <- addOp e
---                 return (Oper op e e2)
---         <|> return e
+multOp :: Exp -> GenParser Char st Exp
+multOp e = try (do      op <- operatorHigherPrecedence
+                        spaces
+                        e2 <- term
+                        case e of
+                           Oper opj j1 j2 -> multOp (Oper opj j1 (Oper op j2 e2))
+                           _ -> multOp (Oper op e e2) -- if e is term
+                )
+        <|> try (
+                do spaces
+                   string "=="
+                   spaces
+                   e2 <- expr
+                   spaces
+                   many1 $ satisfy (\c -> c /= '=' || c /= '!')
+                   return (Oper Eq e e2)
+        )
+        <|> addOp e
+        <|> return e
 
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['

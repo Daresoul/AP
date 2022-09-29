@@ -1,7 +1,7 @@
 /Users/tomato/git/AP/3week/code/part2/src/BoaInterp.hs:
   hash: fdf69aed67318e174e0ffcb2a314f94b224368d75156e536ac32f537f6b63211
 /Users/tomato/git/AP/3week/code/part2/src/BoaAST.hs:
-  hash: b76a012e2f3e9db05de8cb71cdc1c1695b4104d1067490f5caacc7ec2b8d2e45
+  hash: 4a49171e8394e9a68e9688b24944c12e930cbb8b17ef971d4f19095ebafbcfdc
 /Users/tomato/git/AP/3week/code/part2/package.yaml:
   hash: f818a230a4c364dd69fe979db572e5ec166352dc03966efdfcd3a87066875e21
 /Users/tomato/.stack/programs/aarch64-osx/ghc-9.0.2/lib/ghc-9.0.2/lib/aarch64-osx-ghc-9.0.2/rts-1.0.2/include/ghcversion.h:
@@ -13,6 +13,6 @@
 /Users/tomato/git/AP/3week/code/part2/.stack-work/dist/aarch64-osx/Cabal-3.4.1.0/build/boa/autogen/Paths_boa.hs:
   hash: 8ddedfc6bf8b42db1cc7034f37f2358d286ed5a84b6a176dcabf2e1d35df3bdb
 /Users/tomato/git/AP/3week/code/part2/src/BoaParser.hs:
-  hash: 16b8808ddacb62857e6270e39abb5db99a65f252860656af2e197e398917effb
+  hash: ff0e16837dacf731a3d7f617c25bdedbcd629a26d2999dd9402f8ad19571edbd
 /Users/tomato/git/AP/3week/code/part2/boa.cabal:
   hash: 5e012c6ff4b41f23585b49e375273c9839384fae711697f9e2b2f5f89cc9aa83
