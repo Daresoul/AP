@@ -4,6 +4,7 @@ module BoaParser (ParseError, parseString) where
 
 import BoaAST
 import Text.ParserCombinators.Parsec
+import Text.Parsec.Error
 import Data.Char
 
 stringChar = '\''
@@ -24,10 +25,13 @@ readCharsFromString :: String -> GenParser Char st ()
 readCharsFromString [] = return ()
 readCharsFromString (s:sx) = do     char s
                                     readCharsFromString sx
+
+isInList :: String -> [String] -> Bool
+isInList s list = any (\k -> s == k ) list
                             
                             
 -- checkgarbage :: GenParser Char () Char 
--- checkgarbage = try $ lookAhead $ satisfy (\a -> isDigit a || a in operators)
+-- checkgarbage = try $ lookAhead $ satisfy (\a -> isDigit a || isInList a operators)
 
 stmts :: GenParser Char st [Stmt]
 stmts = do  s1 <- stmt
@@ -55,40 +59,37 @@ stmt = try (
 
 term :: GenParser Char st Exp
 term = try notExp
+    <|> try ident
     <|> try listComprehension
     <|> try list
     <|> try parenthesis
     <|> try numConst
     <|> try stringConst
-    <|> try ident
 
 expr :: GenParser Char st Exp
-expr = do   t1 <- term
-            expr' t1
-    <|> term
-    -- indeholder alt i definationen 1+1+2
-    -- DO TERM først alt der terminere ( så alt andet end oper)
-    -- expr -> t1 <- term; exprOp t1
+expr = do    t1 <- term
+             addOp t1
+     <|> try term
 
-expr' :: Exp -> GenParser Char st Exp
-expr' e = do    op <- operator
+addOp :: Exp -> GenParser Char st Exp
+addOp e = do    op <- operator
                 spaces
                 e2 <- term
-                expr' (Oper op e e2)
+                addOp (Oper op e e2)
         <|> return e
 
 -- Right [SExp (Oper Times (Oper Plus (Const (IntVal 2)) (Const (IntVal 3))) (Var "x"))]
 
--- expr'' :: Exp -> GenParser Char st Exp
--- expr'' e = do   op <- operatorHigherPrecedence
+-- multOp :: Exp -> GenParser Char st Exp
+-- multOp e = do   op <- operatorHigherPrecedence
 --                 spaces
---                 e2 <- term
---                 expr'' (Oper op e e2)
---         <|> term
+--                 e2 <- addOp e
+--                 return (Oper op e e2)
 --         <|> return e
 
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
+                        spaces
                         e <- expr
                         listComprehensionL e
 
@@ -155,7 +156,7 @@ ident = do  idenName <- identString
             idenL idenName
 
 idenL :: String -> GenParser Char st Exp
-idenL s = functionCall s
+idenL s = try (functionCall s)
         <|> idenVar s
 
 idenVar :: String -> GenParser Char st Exp
@@ -164,8 +165,9 @@ idenVar s = do  spaces
 
 identString :: GenParser Char st String
 identString = try (do   c <- satisfy (\c -> isAlphaNum c || c == '_')
-                        s <- many1 (satisfy (\c -> isAlphaNum c || c == '_'))
-                        return ([c] ++ s))
+                        s <- many1 (satisfy (\c -> isAlphaNum c || c == '_' || isDigit c))
+                        if isInList ([c] ++ s) keywords then return ""
+                                                        else return ([c] ++ s))
             <|> do  c <- satisfy (\c -> isAlphaNum c || c == '_')
                     return [c]
 
@@ -230,11 +232,11 @@ operator = do   char '+'
             spaces
             return Minus
 
--- operatorHigherPrecedence :: GenParser Char st Op
--- operatorHigherPrecedence = do   char '*'
---                                 spaces
---                                 return Times
---     <|> do  char '/'
---             spaces
---             return Div
+operatorHigherPrecedence :: GenParser Char st Op
+operatorHigherPrecedence = do   char '*'
+                                spaces
+                                return Times
+    <|> do  char '/'
+            spaces
+            return Div
     
