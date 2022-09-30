@@ -81,8 +81,23 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "GreaterOrEqual 1>=2" $ parseString "1>=2" @?= Right [SExp (Oper Less (Const (IntVal 2)) (Oper Plus (Const (IntVal 1)) (Const (IntVal 1))))],
    testCase "GreaterOrEqual -1>=-2" $ parseString "-1>=-2" @?= Right [SExp (Oper Less (Const (IntVal (-2))) (Oper Plus (Const (IntVal (-1))) (Const (IntVal 1))))],
    testCase "GreaterOrEqual 1>=-2" $ parseString "1>=-2" @?= Right [SExp (Oper Less (Const (IntVal (-2))) (Oper Plus (Const (IntVal (1))) (Const (IntVal 1))))],
-   testCase "GreaterOrEqual -1>=2" $ parseString "-1>=2" @?= Right [SExp (Oper Less (Const (IntVal 2)) (Oper Plus (Const (IntVal (-1))) (Const (IntVal 1))) )],
+   testCase "GreaterOrEqual -1>=2" $ parseString "-1>=2" @?= Right [SExp (Oper Less (Const (IntVal 2)) (Oper Plus (Const (IntVal (-1))) (Const (IntVal 1))))],
    
+   testCase "Precedens Simple 1 (Minus)" $ parseString "1-2-3" @?= Right [SExp (Oper Minus (Oper Minus (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
+   testCase "Precedens Simple 2 (Plus)" $ parseString "1+2+3" @?= Right [SExp (Oper Plus (Oper Plus (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
+   testCase "Precedens Simple 2 (Times)" $ parseString "1*2*3" @?= Right [SExp (Oper Times (Oper Times (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
+   testCase "Precedens Simple 2 (Div)" $ parseString "1//2//3" @?= Right [SExp (Oper Div (Oper Div (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],   
+
+   testCase "Precedens Medium 1 (Minus times)" $ parseString "1-2*3" @?= Right [SExp (Oper Minus (Const (IntVal 1)) (Oper Times (Const (IntVal 2)) (Const (IntVal 3))))],
+   testCase "Precedens Medium 2 (Plus times)" $ parseString "1+2*3" @?= Right [SExp (Oper Plus (Const (IntVal 1)) (Oper Times (Const (IntVal 2)) (Const (IntVal 3))))],
+   testCase "Precedens Medium 2 (Times Div)" $ parseString "1*2//3" @?= Right [SExp (Oper Div (Oper Times (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
+   testCase "Precedens Medium 2 (Div Times)" $ parseString "1//2*3" @?= Right [SExp (Oper Times (Oper Div (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],   
+   
+   testCase "Precedens Hard 1 (Paras Minus times)" $ parseString "(1-2)*3" @?= Right [SExp (Oper Times (Oper Minus (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
+   testCase "Precedens Hard 2 (Paras Plus times)" $ parseString "(1+2)*3" @?= Right [SExp (Oper Times (Oper Plus (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
+   testCase "Precedens Hard 2 (Paras Times Div)" $ parseString "1*(2//3)" @?= Right [SExp (Oper Times (Const (IntVal 1)) (Oper Div (Const (IntVal 2)) (Const (IntVal 3))))],
+   testCase "Precedens Hard 2 (Paras Div Times)" $ parseString "1//(2*3)" @?= Right [SExp (Oper Div (Oper Times (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],   
+
    testCase "Equals 3xfail 2==2==2 fail" $ case parseString "2==2==2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "Greater Equal 3xfail 2>=2>=2 fail" $ case parseString "2>=2>=2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "Less 3xfail 2<2<2 fail" $ case parseString "2<2<2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
