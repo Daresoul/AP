@@ -3,12 +3,9 @@
 module BoaParser (ParseError, parseString) where
 import BoaAST
 import Text.ParserCombinators.Parsec
-<<<<<<< HEAD
-=======
 import Text.Parsec.Char
 import Text.Parsec.Combinator
 import Text.Parsec.Error
->>>>>>> eca9669 (fixed integer)
 import Data.Char
 
 stringChar = '\''
@@ -91,7 +88,6 @@ multOp e = try (do      op <- operatorHigherPrecedence
                            Oper opj j1 j2 -> multOp (Oper opj j1 (Oper op j2 e2))
                            _ -> multOp (Oper op e e2) -- if e is term
                 )
-<<<<<<< HEAD
         <|> try (
                 do spaces
                    string "=="
@@ -99,7 +95,7 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    e2 <- expr
                    spaces
                    return (Oper Eq e e2)
-        )
+        )        
         <|> try (
                 do spaces
                    string "<="
@@ -132,28 +128,12 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    return (Oper Greater e e2)
         )
-=======
-        -- <|> try (
-        --         do spaces
-        --            string "=="
-        --            spaces
-        --            e2 <- expr
-        --            spaces
-        --            return (Oper Eq e e2)
-        -- )
->>>>>>> eca9669 (fixed integer)
         <|> addOp e
 
-<<<<<<< HEAD
--- comment :: GenParser Char st ()
--- comment = do char "#"
---              skipMany1 (\c -> endOfLine)
-=======
 comment :: GenParser Char st ()
 comment = do char '#'
              manyTill anyChar (endOfLine)
              return ()
->>>>>>> eca9669 (fixed integer)
 
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
