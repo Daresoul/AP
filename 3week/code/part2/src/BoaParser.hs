@@ -25,10 +25,13 @@ stmts :: GenParser Char st [Stmt]
 stmts = do  s1 <- stmt
             spaces
             stmtl <- stmtsL s1
+            spaces
+            eof
             return stmtl
 
 stmtsL :: Stmt -> GenParser Char st [Stmt]
-stmtsL s = do   char ';'
+stmtsL s = do   spaces
+                char ';'
                 spaces
                 s2 <- stmts
                 return (s:s2)
@@ -42,16 +45,14 @@ stmt = try (
         spaces
         e1 <- expr
         spaces
-        eof
         return (SDef id e1))
     <|> do  e1 <- expr
-            eof
             return (SExp e1)
 
 term :: GenParser Char st Exp
 term = try notExp
-    <|> try listComprehension
     <|> try list
+    <|> try listComprehension
     <|> try parenthesis
     <|> try ident
     <|> try stringConst
@@ -63,9 +64,9 @@ term = try notExp
            expr
 
 expr :: GenParser Char st Exp
-expr =  do      spaces
+expr =  try (do spaces
                 t1 <- term
-                multOp t1
+                multOp t1)
      <|> term
 
 addOp :: Exp -> GenParser Char st Exp
@@ -132,6 +133,22 @@ comment :: GenParser Char st ()
 comment = do char '#'
              manyTill anyChar (endOfLine)
              return ()
+
+list :: GenParser Char st Exp
+list = try (do  spaces
+                char listStartChar
+                spaces
+                ez1 <- exprz
+                spaces
+                char listEndChar
+                spaces
+                return (List ez1))
+      <|> do    spaces
+                char listStartChar
+                spaces
+                char listEndChar
+                return (List [])
+
 
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
@@ -212,20 +229,10 @@ idenVar s = do  spaces
 identString :: GenParser Char st String
 identString = try (do   c <- satisfy (\c -> isLetter c || c == '_')
                         s <- many1 (satisfy (\c -> isAlphaNum c || c == '_' || isDigit c))
-                        if isInList ([c] ++ s) keywords then return "" --fail "Cannot have keywords as variable names."
+                        if isInList ([c] ++ s) keywords then fail "Cannot have keywords as variable names."
                                                         else return ([c] ++ s))
                <|> do  c <- satisfy (\c -> isLetter c || c == '_')
                        return [c]
-
-list :: GenParser Char st Exp
-list = do   spaces
-            char listStartChar
-            spaces
-            ez1 <- exprz
-            spaces
-            char listEndChar
-            spaces
-            return (List ez1)
 
 parenthesis :: GenParser Char st Exp
 parenthesis = do    spaces
@@ -248,30 +255,31 @@ stringConst :: GenParser Char st Exp
 stringConst = do    spaces
                     char stringChar
                     stringconstIntermediate ""
-                    -- e1 <- many1 (satisfy (\c -> isAscii c && c /= stringChar))
 
 stringconstIntermediate :: String -> GenParser Char st Exp
-stringconstIntermediate s = try (do string "\\n"
+stringconstIntermediate s = try (do string "\\'"
+                                    stringconstIntermediate (s ++ ['\'']))
+                        <|> try (do string "\\\n"
+                                    stringconstIntermediate (s ++ ""))
+                        <|> try (do string "\\n"
                                     stringconstIntermediate (s ++ "\n"))
                         <|> try (do string "\\\\"
                                     stringconstIntermediate (s ++ "\\"))
-                        <|> try (do string "\\'"
-                                    stringconstIntermediate (s ++ ['\'']))
-                        <|> try (do s1 <- satisfy (\c -> isAscii c && c /= stringChar && c /= '\\')
-                                    stringconstIntermediate (s ++ [s1]))
+                        <|> try (do     s1 <- satisfy (\c -> isAscii c && c /= stringChar && c /= '\\')
+                                        stringconstIntermediate (s ++ [s1]))
                         <|> do  char stringChar
-                                return (Const (StringVal s))             
+                                return (Const (StringVal s))
 
 numConst :: GenParser Char st Exp
-numConst = try ( do     c <- noneOf "0"
+numConst = try ( do     c <- noneOf "0+"
                         e1 <- many1 (satisfy (\c -> isDigit c))
                         spaces
                         return (Const (IntVal (read ((++) [c] e1)))))
         <|> try ( do    char '-'
-                        c <- noneOf "0"
+                        c <- noneOf "0 +"
                         e1 <- many1 (satisfy (\c -> isDigit c))
                         return (Const (IntVal (-(read ((++) [c] e1))))))
-        <|> try ( do    c <- noneOf "0"
+        <|> try ( do    c <- noneOf "0+"
                         return (Const (IntVal (read [c]))))
         <|> do  char '0'
                 return (Const (IntVal (0)))
