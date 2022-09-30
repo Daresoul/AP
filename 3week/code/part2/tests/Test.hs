@@ -1,5 +1,3 @@
--- Rudimentary test suite. Feel free to replace anything.
-
 import BoaAST
 import BoaParser
 
@@ -96,8 +94,7 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "Precedens Hard 1 (Paras Minus times)" $ parseString "(1-2)*3" @?= Right [SExp (Oper Times (Oper Minus (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
    testCase "Precedens Hard 2 (Paras Plus times)" $ parseString "(1+2)*3" @?= Right [SExp (Oper Times (Oper Plus (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
    testCase "Precedens Hard 2 (Paras Times Div)" $ parseString "1*(2//3)" @?= Right [SExp (Oper Times (Const (IntVal 1)) (Oper Div (Const (IntVal 2)) (Const (IntVal 3))))],
-   testCase "Precedens Hard 2 (Paras Div Times)" $ parseString "1//(2*3)" @?= Right [SExp (Oper Div (Oper Times (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],   
-
+   testCase "Precedens Hard 2 (Paras Div Times)" $ parseString "1//(2*3)" @?= Right [SExp (Oper Div (Oper Times (Const (IntVal 1)) (Const (IntVal 2))) (Const (IntVal 3)))],
    testCase "Equals 3xfail 2==2==2 fail" $ case parseString "2==2==2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "Greater Equal 3xfail 2>=2>=2 fail" $ case parseString "2>=2>=2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "Less 3xfail 2<2<2 fail" $ case parseString "2<2<2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,

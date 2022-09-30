@@ -276,18 +276,23 @@ numConst = try ( do     c <- noneOf "0"
         <|> do  char '0'
                 return (Const (IntVal (0)))
 
-noneConst :: GenParser Char st Exp
+-- parsing the none keyword Parser Char st Exp
 noneConst = do string "None"
                return (Const (NoneVal))
 
+
+-- parsing the false keyword returns it in parsed form
 falseConst :: GenParser Char st Exp
 falseConst = do string "False"
                 return (Const (FalseVal))
 
+-- parsing the true keyword returns it in parsed form
 trueConst :: GenParser Char st Exp
 trueConst = do string "True"
                return (Const (TrueVal))
 
+-- function for teh first precedens operators, 
+-- an aux function for the expr function stack.
 operator :: GenParser Char st Op
 operator = do   char '+'
                 spaces
@@ -296,6 +301,9 @@ operator = do   char '+'
             spaces
             return Minus
 
+-- function that parses for higher order of precedens chracters as * 
+-- and // to make sure they are parsed before f.x. + and -.
+-- an auxillary function to the expr function stack 
 operatorHigherPrecedence :: GenParser Char st Op
 operatorHigherPrecedence = do   char '*'
                                 spaces
