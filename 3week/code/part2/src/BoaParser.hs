@@ -4,6 +4,7 @@ module BoaParser (ParseError, parseString) where
 
 import BoaAST
 import Text.ParserCombinators.Parsec
+import Text.Parsec.Combinator
 import Text.Parsec.Error
 import Data.Char
 
@@ -65,8 +66,10 @@ stmt = try (
         spaces
         e1 <- expr
         spaces
+        eof
         return (SDef id e1))
     <|> do  e1 <- expr
+            eof
             return (SExp e1)
 
 term :: GenParser Char st Exp
@@ -112,6 +115,10 @@ multOp e = try (do      op <- operatorHigherPrecedence
         )
         <|> addOp e
         <|> return e
+
+-- comment :: GenParser Char st ()
+-- comment = do char "#"
+--              many1 
 
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
@@ -192,7 +199,7 @@ idenVar s = do  spaces
 identString :: GenParser Char st String
 identString = try (do   c <- satisfy (\c -> isLetter c || c == '_')
                         s <- many1 (satisfy (\c -> isAlphaNum c || c == '_' || isDigit c))
-                        if isInList ([c] ++ s) keywords then return ""
+                        if isInList ([c] ++ s) keywords then do return ""
                                                         else return ([c] ++ s))
                <|> do  c <- satisfy (\c -> isLetter c || c == '_')
                        return [c]
