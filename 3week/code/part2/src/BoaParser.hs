@@ -262,4 +262,7 @@ operatorHigherPrecedence = do   char '*'
     <|> do  string "//"
             spaces
             return Div
+    <|> do  char '%'
+            spaces
+            return Div
     
