@@ -24,27 +24,19 @@ parseString :: String -> Either ParseError Program
 parseString s = do  p <- parse stmts "Error" s
                     return p
 
-<<<<<<< Updated upstream
-=======
 readCharsFromString :: String -> GenParser Char st ()
 readCharsFromString [] = return ()
 readCharsFromString (s:sx) = do     char s
                                     readCharsFromString sx
 
->>>>>>> Stashed changes
 isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
                             
                             
-<<<<<<< Updated upstream
 checkGarbageString :: GenParser Char () Char 
 checkGarbageString = try $ lookAhead $ satisfy $ \a -> isDigit a 
                                                     || isInList a operators 
                                                     || isAscii a && a /= stringChar
-=======
-checkgarbage :: GenParser Char () Char 
-checkgarbage = try $ lookAhead $ satisfy (\a -> isDigit a || isInList a operators)
->>>>>>> Stashed changes
 
 stmts :: GenParser Char st [Stmt]
 stmts = do  s1 <- stmt
