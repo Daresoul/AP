@@ -4,8 +4,6 @@ module BoaParser (ParseError, parseString) where
 import BoaAST
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Char
-import Text.Parsec.Combinator
-import Text.Parsec.Error
 import Data.Char
 
 stringChar = '\''
@@ -94,7 +92,6 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   --many1 $ satisfy (\c -> c /= '=' || c /= '!')
                    return (Oper Eq e e2)
         )        
         <|> try (
@@ -103,7 +100,7 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   return (Oper Greater e2 e)
+                   return (Oper Less e $ Oper Plus e2 $ Const $ IntVal 1)
         )
         <|> try (
                 do spaces
@@ -111,7 +108,7 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   return (Oper Less e2 e)
+                   return (Oper Less e2 $ Oper Plus e $ Const $ IntVal 1)
         )
         <|> try (
                 do spaces
