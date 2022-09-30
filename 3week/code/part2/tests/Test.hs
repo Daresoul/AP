@@ -66,9 +66,9 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "Equals (-2)==2" $ parseString "(-2)==2" @?= Right [SExp (Oper Eq (Const (IntVal (-2) )) (Const (IntVal 2)))],
    testCase "Equals -2==2" $ parseString "-2==2" @?= Right [SExp (Oper Eq (Const (IntVal (-2) )) (Const (IntVal 2)))],
    testCase "Equals (-2)==(-2)" $ parseString "(-2)==(-2)" @?= Right [SExp (Oper Eq (Const (IntVal (-2) )) (Const (IntVal (-2))))],
-   testCase "Equals 3xfail 2==2==2 fail" $ case parseString "2==2==2!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
-   testCase "Greater Equal 3xfail 2>=2>=2 fail" $ case parseString "2>=2>=2!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
-   testCase "Less 3xfail 2<2<2 fail" $ case parseString "2<2<2!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
-   testCase "Greater 3xfail 2>2>2 fail" $ case parseString "2>2>2!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
-   testCase "Less Equal 3xfail 2<=2<=2 fail" $ case parseString "2<=2<=2!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p
+   testCase "Equals 3xfail 2==2==2 fail" $ case parseString "2==2==2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
+   testCase "Greater Equal 3xfail 2>=2>=2 fail" $ case parseString "2>=2>=2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
+   testCase "Less 3xfail 2<2<2 fail" $ case parseString "2<2<2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
+   testCase "Greater 3xfail 2>2>2 fail" $ case parseString "2>2>2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
+   testCase "Less Equal 3xfail 2<=2<=2 fail" $ case parseString "2<=2<=2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p
    ]

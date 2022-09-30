@@ -86,7 +86,7 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   many1 $ satisfy (\c -> c /= '=' || c /= '!')
+                   --many1 $ satisfy (\c -> c /= '=' || c /= '!')
                    return (Oper Eq e e2)
         )
         <|> try (
