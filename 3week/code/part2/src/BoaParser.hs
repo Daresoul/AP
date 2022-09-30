@@ -32,17 +32,6 @@ readCharsFromString (s:sx) = do     char s
 
 isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
-
-                            
-checkGarbageString :: GenParser Char st Char
-checkGarbageString = lookAhead $ satisfy $ \a -> isDigit a 
-                                              || a /= '!'
-                                              || isInList a operators 
-                                              || isAscii a && a /= stringChar
-                                                
-checkGarbageNumber :: GenParser Char sr Char
-checkGarbageNumber = lookAhead $ satisfy $ \a -> isDigit a
-                                              || isInList a operators
                                               
                                                
 stmts :: GenParser Char st [Stmt]
@@ -94,13 +83,14 @@ addOp e = try (do       op <- operator
                         multOp (Oper op e e2))
         <|> return e
 
--- Right [SExp (Oper Times (Oper Plus (Const (IntVal 2)) (Const (IntVal 3))) (Var "x"))]
-
 multOp :: Exp -> GenParser Char st Exp
 multOp e = try (do      op <- operatorHigherPrecedence
                         spaces
                         e2 <- term
                         case e of
+                           Oper Times _ _ -> multOp (Oper op e e2)
+                           Oper Div _ _ -> multOp (Oper op e e2)
+                           Oper Mod _ _ -> multOp (Oper op e e2)
                            Oper opj j1 j2 -> multOp (Oper opj j1 (Oper op j2 e2))
                            _ -> multOp (Oper op e e2) -- if e is term
                 )
@@ -233,9 +223,7 @@ notExp = do spaces
 
 stringConst :: GenParser Char st Exp
 stringConst = do    spaces
-                    checkGarbageString
                     char stringChar
-                    checkGarbageString
                     stringconstIntermediate ""
                     -- e1 <- many1 (satisfy (\c -> isAscii c && c /= stringChar))
 
@@ -248,21 +236,15 @@ stringconstIntermediate s = try (do string "\\n"
                                     stringconstIntermediate (s ++ ['\'']))
                         <|> try (do s1 <- satisfy (\c -> isAscii c && c /= stringChar && c /= '\\')
                                     stringconstIntermediate (s ++ [s1]))
-                        <|> do  checkGarbageString
-                                char stringChar
-                                checkGarbageString
+                        <|> do  char stringChar
                                 return (Const (StringVal s))             
 
 numConst :: GenParser Char st Exp
-numConst = do   checkGarbageNumber
-                e1 <- many1 (satisfy (\c -> isDigit c))
-                checkGarbageNumber
+numConst = do   e1 <- many1 (satisfy (\c -> isDigit c))
                 spaces
                 return (Const (IntVal (read e1)))
         <|> do  char '-'
-                checkGarbageNumber
                 e1 <- many1 (satisfy (\c -> isDigit c))
-                checkGarbageNumber
                 return (Const (IntVal (-(read e1))))
 
 operator :: GenParser Char st Op
