@@ -83,7 +83,7 @@ expT = do spaces
           symbol ')'
           return res -- "(" E ")"
 
-parseString2 :: String -> Either ParseError Exp
-parseString2 input = case parse expE "Error" input of
-             Right res -> Right res
-             Left err -> Left err
+parseString :: String -> Either ParseError Exp
+parseString input = case parse expE "Error" input of
+            Right res -> Right res
+            Left err -> Left err
