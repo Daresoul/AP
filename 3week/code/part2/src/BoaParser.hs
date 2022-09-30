@@ -65,10 +65,8 @@ stmt = try (
         spaces
         e1 <- expr
         spaces
-        checkgarbage
         return (SDef id e1))
     <|> do  e1 <- expr
-            checkgarbage
             return (SExp e1)
 
 term :: GenParser Char st Exp
