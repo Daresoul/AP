@@ -20,8 +20,8 @@ parseString s = do  p <- parse stmts "Error" s
 
 isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
-                                              
-                                               
+
+                                    
 stmts :: GenParser Char st [Stmt]
 stmts = do  s1 <- stmt
             spaces
