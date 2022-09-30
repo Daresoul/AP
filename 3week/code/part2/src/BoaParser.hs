@@ -24,19 +24,33 @@ parseString :: String -> Either ParseError Program
 parseString s = do  p <- parse stmts "Error" s
                     return p
 
+<<<<<<< Updated upstream
+=======
+readCharsFromString :: String -> GenParser Char st ()
+readCharsFromString [] = return ()
+readCharsFromString (s:sx) = do     char s
+                                    readCharsFromString sx
+
+>>>>>>> Stashed changes
 isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
                             
                             
+<<<<<<< Updated upstream
 checkGarbageString :: GenParser Char () Char 
 checkGarbageString = try $ lookAhead $ satisfy $ \a -> isDigit a 
                                                     || isInList a operators 
                                                     || isAscii a && a /= stringChar
+=======
+checkgarbage :: GenParser Char () Char 
+checkgarbage = try $ lookAhead $ satisfy (\a -> isDigit a || isInList a operators)
+>>>>>>> Stashed changes
 
 stmts :: GenParser Char st [Stmt]
 stmts = do  s1 <- stmt
             spaces
-            stmtsL s1
+            stmtl <- stmtsL s1
+            return stmtl
 
 stmtsL :: Stmt -> GenParser Char st [Stmt]
 stmtsL s = do   char ';'
@@ -53,8 +67,10 @@ stmt = try (
         spaces
         e1 <- expr
         spaces
+        checkgarbage
         return (SDef id e1))
     <|> do  e1 <- expr
+            checkgarbage
             return (SExp e1)
 
 term :: GenParser Char st Exp
@@ -220,12 +236,12 @@ stringConst = do    spaces
 
 stringconstIntermediate :: String -> GenParser Char st Exp
 stringconstIntermediate s = try (do string "\\n"
-                                    stringconstIntermediate (s ++ "<-"))
+                                    stringconstIntermediate (s ++ "\n"))
                         <|> try (do string "\\\\"
                                     stringconstIntermediate (s ++ "\\"))
                         <|> try (do string "\\'"
                                     stringconstIntermediate (s ++ ['\'']))
-                        <|> try (do s1 <- satisfy (\c -> isAscii c && c /= stringChar)
+                        <|> try (do s1 <- satisfy (\c -> isAscii c && c /= stringChar && c /= '\\')
                                     stringconstIntermediate (s ++ [s1]))
                         <|> do  char stringChar
                                 return (Const (StringVal s))             
