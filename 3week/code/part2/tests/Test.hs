@@ -84,6 +84,5 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "Greater Equal 3xfail 2>=2>=2 fail" $ case parseString "2>=2>=2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "Less 3xfail 2<2<2 fail" $ case parseString "2<2<2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "Greater 3xfail 2>2>2 fail" $ case parseString "2>2>2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
-   testCase "Less Equal 3xfail 2<=2<=2 fail" $ case parseString "2<=2<=2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
-   
+   testCase "Less Equal 3xfail 2<=2<=2 fail" $ case parseString "2<=2<=2"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p
    ]
