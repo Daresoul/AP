@@ -86,7 +86,6 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   --many1 $ satisfy (\c -> c /= '=' || c /= '!')
                    return (Oper Eq e e2)
         )
         <|> try (
@@ -95,7 +94,6 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   many1 $ satisfy (\c -> c /= '=' || c /= '!')
                    return (Oper Greater e2 e)
         )
         <|> try (
@@ -104,7 +102,6 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   many1 $ satisfy (\c -> c /= '=' || c /= '!')
                    return (Oper Less e2 e)
         )
         <|> try (
@@ -113,7 +110,6 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   many1 $ satisfy (\c -> c /= '=' || c /= '!')
                    return (Oper Less e e2)
         )
         <|> try (
@@ -122,7 +118,6 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    e2 <- expr
                    spaces
-                   many1 $ satisfy (\c -> c /= '=' || c /= '!')
                    return (Oper Greater e e2)
         )
         <|> addOp e
@@ -260,6 +255,7 @@ stringconstIntermediate s = try (do string "\\n"
                                     stringconstIntermediate (s ++ [s1]))
                         <|> do  char stringChar
                                 return (Const (StringVal s))             
+
 
 numConst :: GenParser Char st Exp
 numConst = do   e1 <- many1 (satisfy (\c -> isDigit c))
