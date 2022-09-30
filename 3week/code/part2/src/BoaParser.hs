@@ -94,9 +94,9 @@ multOp e = try (do      op <- operatorHigherPrecedence
         <|> addOp e
         <|> return e
 
--- comment :: GenParser Char st ()
--- comment = do char "#"
---              many1 
+comment :: GenParser Char st ()
+comment = do char "#"
+             skipMany1 (\c -> endOfLine)
 
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
@@ -250,4 +250,7 @@ operatorHigherPrecedence = do   char '*'
     <|> do  string "//"
             spaces
             return Div
+    <|> do  char '%'
+            spaces
+            return Mod
     
