@@ -21,13 +21,8 @@ parseString :: String -> Either ParseError Program
 parseString s = do  p <- parse stmts "Error" s
                     return p
 
-readCharsFromString :: String -> GenParser Char st ()
-readCharsFromString [] = return ()
-readCharsFromString (s:sx) = do     char s
-                                    readCharsFromString sx
-
--- isInList :: Eq => a -> [a] -> Bool
--- isInList s list = any (\k -> s == k ) list
+isInList :: Eq a => a -> [a] -> Bool
+isInList s list = any (\k -> s == k ) list
                             
                             
 -- checkgarbage :: GenParser Char () Char 
@@ -182,8 +177,8 @@ identString = try (do   c <- satisfy (\c -> isLetter c || c == '_')
                         s <- many1 (satisfy (\c -> isAlphaNum c || c == '_' || isDigit c))
                         if isInList ([c] ++ s) keywords then return ""
                                                         else return ([c] ++ s))
-            <|> do  c <- satisfy (\c -> isLetter c || c == '_')
-                    return [c]
+               <|> do  c <- satisfy (\c -> isLetter c || c == '_')
+                       return [c]
 
 list :: GenParser Char st Exp
 list = do   spaces
@@ -216,7 +211,7 @@ stringConst :: GenParser Char st Exp
 stringConst = do    spaces
                     char stringChar
                     stringconstIntermediate ""
-                    --e1 <- many1 (satisfy (\c -> isAscii c && c /= stringChar))
+                    e1 <- many1 (satisfy (\c -> isAscii c && c /= stringChar))
 
 stringconstIntermediate :: String -> GenParser Char st Exp
 stringconstIntermediate s = try (do string "\\n"
