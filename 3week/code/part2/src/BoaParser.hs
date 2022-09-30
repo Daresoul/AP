@@ -20,13 +20,8 @@ parseString s = do  p <- parse stmts "Error" s
 
 isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
-<<<<<<< HEAD
-
-                                    
-=======
                                               
                                                
->>>>>>> 1f064ba32f09cb328731d61de948eab5b33fbb44
 stmts :: GenParser Char st [Stmt]
 stmts = do  s1 <- stmt
             spaces
@@ -216,13 +211,7 @@ notExp = do spaces
 
 stringConst :: GenParser Char st Exp
 stringConst = do    spaces
-<<<<<<< HEAD
-                    -- checkGarbageString
                     char stringChar
-                    -- checkGarbageString
-=======
-                    char stringChar
->>>>>>> 1f064ba32f09cb328731d61de948eab5b33fbb44
                     stringconstIntermediate ""
                     -- e1 <- many1 (satisfy (\c -> isAscii c && c /= stringChar))
 
@@ -235,19 +224,6 @@ stringconstIntermediate s = try (do string "\\n"
                                     stringconstIntermediate (s ++ ['\'']))
                         <|> try (do s1 <- satisfy (\c -> isAscii c && c /= stringChar && c /= '\\')
                                     stringconstIntermediate (s ++ [s1]))
-<<<<<<< HEAD
-                        <|> do -- checkGarbageString
-                                char stringChar
-                                return (Const (StringVal s))             
-
-numConst :: GenParser Char st Exp
-numConst = do   -- checkGarbageNumber
-                e1 <- many1 (satisfy (\c -> isDigit c))
-                spaces
-                return (Const (IntVal (read e1)))
-        <|> do  char '-'
-                -- checkGarbageNumber
-=======
                         <|> do  char stringChar
                                 return (Const (StringVal s))             
 
@@ -256,7 +232,6 @@ numConst = do   e1 <- many1 (satisfy (\c -> isDigit c))
                 spaces
                 return (Const (IntVal (read e1)))
         <|> do  char '-'
->>>>>>> 1f064ba32f09cb328731d61de948eab5b33fbb44
                 e1 <- many1 (satisfy (\c -> isDigit c))
                 return (Const (IntVal (-(read e1))))
 
@@ -273,9 +248,6 @@ operatorHigherPrecedence = do   char '*'
                                 spaces
                                 return Times
     <|> do  string "//"
-            spaces
-            return Div
-    <|> do  char '%'
             spaces
             return Div
     

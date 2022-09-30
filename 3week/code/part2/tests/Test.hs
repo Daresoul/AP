@@ -41,11 +41,22 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "dirty times symbol fail" $ case parseString "2!*2!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "dirty times letter fail" $ case parseString "2awr*2awr!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "dirty tiems symbol2 fail" $ case parseString "2...*2..0!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
+   testCase "dirty division symbol fail" $ case parseString "2!//2!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
+   testCase "dirty division letter fail" $ case parseString "2awr//2awr!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
+   testCase "dirty division symbol2 fail" $ case parseString "2...//2..0!"  of Left e -> return (); Right p -> assertFailure $ "Unexpected parse: " ++ show p,
    testCase "Times 2*2" $ parseString "2*2" @?= Right [SExp (Oper Times (Const (IntVal 2)) (Const (IntVal 2)))],
    testCase "Times (-2)*2" $ parseString "(-2)*2" @?= Right [SExp (Oper Times (Const (IntVal (-2) )) (Const (IntVal 2)))],
    testCase "Times -2*2" $ parseString "-2*2" @?= Right [SExp (Oper Times (Const (IntVal (-2) )) (Const (IntVal 2)))],
    testCase "Times (-2)*(-2)" $ parseString "(-2)*(-2)" @?= Right [SExp (Oper Times (Const (IntVal (-2) )) (Const (IntVal (-2))))],
-   testCase "Times left asso 2*2*2" $ parseString "2*2*2" @?= Right [SExp (Oper Times (Oper Times (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))]
-   
-   
+   testCase "Times left asso 2*2*2" $ parseString "2*2*2" @?= Right [SExp (Oper Times (Oper Times (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))],
+   testCase "Division 2*2" $ parseString "2//2" @?= Right [SExp (Oper Div (Const (IntVal 2)) (Const (IntVal 2)))],
+   testCase "Division (-2)/2" $ parseString "(-2)//2" @?= Right [SExp (Oper Div (Const (IntVal (-2) )) (Const (IntVal 2)))],
+   testCase "Division -2/2" $ parseString "-2//2" @?= Right [SExp (Oper Div (Const (IntVal (-2) )) (Const (IntVal 2)))],
+   testCase "Division (-2)/(-2)" $ parseString "(-2)//(-2)" @?= Right [SExp (Oper Div (Const (IntVal (-2) )) (Const (IntVal (-2))))],
+   testCase "Division left asso 2/2/2" $ parseString "2//2//2" @?= Right [SExp (Oper Div (Oper Div (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))],
+   testCase "Modulus 2%2" $ parseString "2%2" @?= Right [SExp (Oper Mod (Const (IntVal 2)) (Const (IntVal 2)))],
+   testCase "Modulus (-2)%2" $ parseString "(-2)%2" @?= Right [SExp (Oper Mod (Const (IntVal (-2) )) (Const (IntVal 2)))],
+   testCase "Modulus -2%2" $ parseString "-2%2" @?= Right [SExp (Oper Mod (Const (IntVal (-2) )) (Const (IntVal 2)))],
+   testCase "Modulus (-2)%(-2)" $ parseString "(-2)%(-2)" @?= Right [SExp (Oper Mod (Const (IntVal (-2) )) (Const (IntVal (-2))))],
+   testCase "Modulus left asso 2%2%2" $ parseString "2%2%2" @?= Right [SExp (Oper Mod (Oper Mod (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))]
    ]
