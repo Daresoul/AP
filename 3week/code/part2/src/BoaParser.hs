@@ -64,12 +64,12 @@ stmt = try (
 --expressions. 
 term :: GenParser Char st Exp
 term = try notExp
-    <|> try trueConst
-    <|> try noneConst
-    <|> try falseConst
     <|> try list
     <|> try listComprehension
     <|> try parenthesis
+    <|> try noneConst
+    <|> try trueConst
+    <|> try falseConst
     <|> try ident
     <|> try stringConst
     <|> try numConst

@@ -10,12 +10,12 @@
 #
 Assignment: 3 # do not modify
 Installation: 0m # normally covered under Assignment 1/2; fill in otherwise
-Reading:5m
-Lectures:5m
-Exploration:5m
-Warmup:5m
-Development:5m
-Tests:5m
-Report:5m
-Other:5m
+Reading:x
+Lectures:x
+Exploration:x
+Warmup:x
+Development:x
+Tests:x
+Report:x
+Other:x
 # Thanks!

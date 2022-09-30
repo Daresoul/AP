@@ -116,5 +116,10 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "List empty" $ parseString " [  ] " @?= Right [SExp (List [])],
    testCase "List values" $ parseString " ['hej', 'med', 'dig', 1] " @?= Right [SExp (List [Const (StringVal "hej"), Const (StringVal "med"), Const (StringVal "dig"), Const (IntVal 1)])],
    testCase "List Comprehension" $ parseString "[x for y in 2+2 if 3]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Oper Plus (Const (IntVal 2)) (Const (IntVal 2))),CCIf (Const (IntVal 3))])],
-   testCase "List Comprehension advanced" $ parseString "[x for y in 2+2 if 3 if 4 for z in 5*5]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Oper Plus (Const (IntVal 2)) (Const (IntVal 2))),CCIf (Const (IntVal 3)),CCIf (Const (IntVal 4)),CCFor "z" (Oper Times (Const (IntVal 5)) (Const (IntVal 5)))])] 
+   testCase "List Comprehension advanced" $ parseString "[x for y in 2+2 if 3 if 4 for z in 5*5]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Oper Plus (Const (IntVal 2)) (Const (IntVal 2))),CCIf (Const (IntVal 3)),CCIf (Const (IntVal 4)),CCFor "z" (Oper Times (Const (IntVal 5)) (Const (IntVal 5)))])], 
+   testCase "not string" $ parseString "not '123'" @?= Right [SExp (Not (Const (StringVal "123")))],
+   testCase "not int" $ parseString "not 123" @?= Right [SExp (Not (Const (IntVal 123)))],
+   testCase "not list" $ parseString "not [123]" @?= Right [SExp (Not (List [Const (IntVal 123)]))],
+   testCase "functionCall" $ parseString "x ([1,2,3])" @?= Right [SExp (Call "x" [List [Const (IntVal 1),Const (IntVal 2),Const (IntVal 3)]])],
+   testCase "functionCall empty argument" $ parseString "x ([])" @?= Right [SExp (Call "x" [List []])]
    ]
