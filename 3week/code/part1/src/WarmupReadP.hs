@@ -27,9 +27,11 @@ data Exp = Num Int | Negate Exp | Add Exp Exp
 
 pExp :: Parser Exp
 pExp = do e <- pTerm; skipSpaces; e2 <- pExp' e; return e2
+        <++ do char '-'; skipSpaces; t <- pTerm; skipSpaces; pExp' (Negate t)
 
 pExp' :: Exp -> Parser Exp
-pExp' e = do skipSpaces; op <- pAddOp; skipSpaces; e2 <- pTerm; pExp' (op e e2)
+pExp' e = do skipSpaces; op <- pAddOp; skipSpaces; e2 <- pTerm; skipSpaces; pExp' (op e e2)
+          <++ do skipSpaces; char '-'; skipSpaces; e2 <- pTerm; skipSpaces; pExp' (Add e (Negate e2))
           <++ return e
 
 pAddOp :: Parser (Exp -> Exp -> Exp)
@@ -37,11 +39,10 @@ pAddOp = do satisfy (\c -> c == '+'); return Add
 
 pTerm :: Parser Exp
 pTerm = do satisfy (\c -> c == '('); skipSpaces; e <- pExp; skipSpaces; satisfy (\c -> c == ')'); return e
-        +++ do satisfy (\c -> c == '-'); skipSpaces; e <- pTerm; pExp' (Negate e)
-        <++ do skipSpaces; s <- munch (\c -> isNumber c); return (Num (read s :: Int))
+        <++ do skipSpaces; c <- satisfy (\c -> c /= '-' && c /= '+'); s <- munch (\c -> isNumber c); return (Num (read ([c] ++ s) :: Int))
 
 parseString :: String -> Either ParseError Exp
-parseString s = case readP_to_S (do res <- pExp; eof; return res) s of
+parseString s = case readP_to_S (do skipSpaces; res <- pExp; skipSpaces; eof; return res) s of
   [(a, _)] -> Right a
   [] -> Left "Error empty list."
   _ -> Left "Error in parsing."

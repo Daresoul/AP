@@ -31,7 +31,7 @@ version = Version [0,0,0] []
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
 
 bindir     = "/Users/tomato/git/AP/3week/code/part2/.stack-work/install/aarch64-osx/7ee89f23c2a0e68f5af5d37a5d8687d104bd9779c0697be8cee4dc504066bf06/9.0.2/bin"
-libdir     = "/Users/tomato/git/AP/3week/code/part2/.stack-work/install/aarch64-osx/7ee89f23c2a0e68f5af5d37a5d8687d104bd9779c0697be8cee4dc504066bf06/9.0.2/lib/aarch64-osx-ghc-9.0.2/boa-0.0.0-FfGMUxGz3Kj8TbKBI3lCVi"
+libdir     = "/Users/tomato/git/AP/3week/code/part2/.stack-work/install/aarch64-osx/7ee89f23c2a0e68f5af5d37a5d8687d104bd9779c0697be8cee4dc504066bf06/9.0.2/lib/aarch64-osx-ghc-9.0.2/boa-0.0.0-IrupGQBEY8aDOBInAILI3b"
 dynlibdir  = "/Users/tomato/git/AP/3week/code/part2/.stack-work/install/aarch64-osx/7ee89f23c2a0e68f5af5d37a5d8687d104bd9779c0697be8cee4dc504066bf06/9.0.2/lib/aarch64-osx-ghc-9.0.2"
 datadir    = "/Users/tomato/git/AP/3week/code/part2/.stack-work/install/aarch64-osx/7ee89f23c2a0e68f5af5d37a5d8687d104bd9779c0697be8cee4dc504066bf06/9.0.2/share/aarch64-osx-ghc-9.0.2/boa-0.0.0"
 libexecdir = "/Users/tomato/git/AP/3week/code/part2/.stack-work/install/aarch64-osx/7ee89f23c2a0e68f5af5d37a5d8687d104bd9779c0697be8cee4dc504066bf06/9.0.2/libexec/aarch64-osx-ghc-9.0.2/boa-0.0.0"
