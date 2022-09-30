@@ -3,6 +3,12 @@
 module BoaParser (ParseError, parseString) where
 import BoaAST
 import Text.ParserCombinators.Parsec
+<<<<<<< HEAD
+=======
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Text.Parsec.Error
+>>>>>>> eca9669 (fixed integer)
 import Data.Char
 
 stringChar = '\''
@@ -49,18 +55,23 @@ stmt = try (
 
 term :: GenParser Char st Exp
 term = try notExp
-    <|> try ident
     <|> try listComprehension
     <|> try list
     <|> try parenthesis
-    <|> try numConst
+    <|> try ident
     <|> try stringConst
+    <|> try numConst
+    <|> try noneConst
+    <|> try trueConst
+    <|> try falseConst
+    <|> do comment
+           expr
 
 expr :: GenParser Char st Exp
-expr = do    spaces
-             t1 <- term
-             multOp t1
-     <|> try term
+expr =  do      spaces
+                t1 <- term
+                multOp t1
+     <|> term
 
 addOp :: Exp -> GenParser Char st Exp
 addOp e = try (do       op <- operator
@@ -80,6 +91,7 @@ multOp e = try (do      op <- operatorHigherPrecedence
                            Oper opj j1 j2 -> multOp (Oper opj j1 (Oper op j2 e2))
                            _ -> multOp (Oper op e e2) -- if e is term
                 )
+<<<<<<< HEAD
         <|> try (
                 do spaces
                    string "=="
@@ -120,12 +132,28 @@ multOp e = try (do      op <- operatorHigherPrecedence
                    spaces
                    return (Oper Greater e e2)
         )
+=======
+        -- <|> try (
+        --         do spaces
+        --            string "=="
+        --            spaces
+        --            e2 <- expr
+        --            spaces
+        --            return (Oper Eq e e2)
+        -- )
+>>>>>>> eca9669 (fixed integer)
         <|> addOp e
-        <|> return e
 
+<<<<<<< HEAD
 -- comment :: GenParser Char st ()
 -- comment = do char "#"
 --              skipMany1 (\c -> endOfLine)
+=======
+comment :: GenParser Char st ()
+comment = do char '#'
+             manyTill anyChar (endOfLine)
+             return ()
+>>>>>>> eca9669 (fixed integer)
 
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
@@ -206,7 +234,7 @@ idenVar s = do  spaces
 identString :: GenParser Char st String
 identString = try (do   c <- satisfy (\c -> isLetter c || c == '_')
                         s <- many1 (satisfy (\c -> isAlphaNum c || c == '_' || isDigit c))
-                        if isInList ([c] ++ s) keywords then do return ""
+                        if isInList ([c] ++ s) keywords then return "" --fail "Cannot have keywords as variable names."
                                                         else return ([c] ++ s))
                <|> do  c <- satisfy (\c -> isLetter c || c == '_')
                        return [c]
@@ -258,12 +286,30 @@ stringconstIntermediate s = try (do string "\\n"
 
 
 numConst :: GenParser Char st Exp
-numConst = do   e1 <- many1 (satisfy (\c -> isDigit c))
-                spaces
-                return (Const (IntVal (read e1)))
-        <|> do  char '-'
-                e1 <- many1 (satisfy (\c -> isDigit c))
-                return (Const (IntVal (-(read e1))))
+numConst = try ( do     c <- noneOf "0"
+                        e1 <- many1 (satisfy (\c -> isDigit c))
+                        spaces
+                        return (Const (IntVal (read ((++) [c] e1)))))
+        <|> try ( do    char '-'
+                        c <- noneOf "0"
+                        e1 <- many1 (satisfy (\c -> isDigit c))
+                        return (Const (IntVal (-(read ((++) [c] e1))))))
+        <|> try ( do    c <- noneOf "0"
+                        return (Const (IntVal (read [c]))))
+        <|> do  char '0'
+                return (Const (IntVal (0)))
+
+noneConst :: GenParser Char st Exp
+noneConst = do string "None"
+               return (Const (NoneVal))
+
+falseConst :: GenParser Char st Exp
+falseConst = do string "False"
+                return (Const (FalseVal))
+
+trueConst :: GenParser Char st Exp
+trueConst = do string "True"
+               return (Const (TrueVal))
 
 operator :: GenParser Char st Op
 operator = do   char '+'
