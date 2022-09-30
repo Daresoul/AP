@@ -32,7 +32,7 @@ readCharsFromString (s:sx) = do     char s
 isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
 
-                            
+                                    
 checkGarbageString :: GenParser Char st Char
 checkGarbageString = lookAhead $ satisfy $ \a -> isDigit a 
                                               || a /= '!'
@@ -249,13 +249,11 @@ stringconstIntermediate s = try (do string "\\n"
 numConst :: GenParser Char st Exp
 numConst = do   checkGarbageNumber
                 e1 <- many1 (satisfy (\c -> isDigit c))
-                checkGarbageNumber
                 spaces
                 return (Const (IntVal (read e1)))
         <|> do  char '-'
                 checkGarbageNumber
                 e1 <- many1 (satisfy (\c -> isDigit c))
-                checkGarbageNumber
                 return (Const (IntVal (-(read e1))))
 
 operator :: GenParser Char st Op
