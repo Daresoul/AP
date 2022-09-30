@@ -15,7 +15,7 @@ keywords :: [String]
 keywords = ["None", "True", "False", "for", "if", "in", "not"]
 
 operators :: [Char]
-operators = ['+', '-', '*', '#']
+operators = ['+', '-', '*', "//",  '#']
 
 parseString :: String -> Either ParseError Program
 parseString s = do  p <- parse stmts "Error" s
@@ -25,8 +25,11 @@ isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
                             
                             
--- checkgarbage :: GenParser Char () Char 
--- checkgarbage = try $ lookAhead $ satisfy (\a -> isDigit a || isInList a operators)
+checkgarbage :: GenParser Char () Char 
+checkgarbage = try $ lookAhead $ satisfy (\a -> isDigit a 
+                                             || isInList a operators 
+                                             || any a keywords 
+                                             || )
 
 stmts :: GenParser Char st [Stmt]
 stmts = do  s1 <- stmt
@@ -245,7 +248,7 @@ operatorHigherPrecedence :: GenParser Char st Op
 operatorHigherPrecedence = do   char '*'
                                 spaces
                                 return Times
-    <|> do  char '/'
+    <|> do  string "//"
             spaces
             return Div
     
