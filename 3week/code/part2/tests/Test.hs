@@ -45,5 +45,5 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "Times (-2)*2" $ parseString "(-2)*2" @?= Right [SExp (Oper Times (Const (IntVal (-2) )) (Const (IntVal 2)))],
    testCase "Times -2*2" $ parseString "-2*2" @?= Right [SExp (Oper Times (Const (IntVal (-2) )) (Const (IntVal 2)))],
    testCase "Times (-2)*(-2)" $ parseString "(-2)*(-2)" @?= Right [SExp (Oper Times (Const (IntVal (-2) )) (Const (IntVal (-2))))],
-   testCase "Times left asso 2*2*2" $ parseString "2*2*2" @?= Right [SExp (Oper Times (Oper Times (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))],
+   testCase "Times left asso 2*2*2" $ parseString "2*2*2" @?= Right [SExp (Oper Times (Oper Times (Const (IntVal 2)) (Const (IntVal 2))) (Const (IntVal 2)))]
    ]

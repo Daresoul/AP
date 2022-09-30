@@ -15,7 +15,10 @@ keywords :: [String]
 keywords = ["None", "True", "False", "for", "if", "in", "not"]
 
 operators :: [Char]
-operators = ['+', '-', '*', "//",  '#']
+operators = ['+', '-', '*', '%', '#']
+
+stringOperators :: [String]
+stringOperators = ["//"]
 
 parseString :: String -> Either ParseError Program
 parseString s = do  p <- parse stmts "Error" s
@@ -25,11 +28,10 @@ isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
                             
                             
-checkgarbage :: GenParser Char () Char 
-checkgarbage = try $ lookAhead $ satisfy (\a -> isDigit a 
-                                             || isInList a operators 
-                                             || any a keywords 
-                                             || )
+checkGarbageString :: GenParser Char () Char 
+checkGarbageString = try $ lookAhead $ satisfy $ \a -> isDigit a 
+                                                    || isInList a operators 
+                                                    || isAscii a && a /= stringChar
 
 stmts :: GenParser Char st [Stmt]
 stmts = do  s1 <- stmt
@@ -214,7 +216,7 @@ stringConst :: GenParser Char st Exp
 stringConst = do    spaces
                     char stringChar
                     stringconstIntermediate ""
-                    e1 <- many1 (satisfy (\c -> isAscii c && c /= stringChar))
+                    -- e1 <- many1 (satisfy (\c -> isAscii c && c /= stringChar))
 
 stringconstIntermediate :: String -> GenParser Char st Exp
 stringconstIntermediate s = try (do string "\\n"
