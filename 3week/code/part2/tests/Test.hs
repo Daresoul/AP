@@ -12,7 +12,20 @@ tests = testGroup "AllTests" [testingMathOperators]
 
 testingMathOperators :: TestTree
 testingMathOperators = testGroup "testingMathOperators"
-  [testCase "Plus 2+2" $ parseString "2+2" @?= Right [SExp (Oper Plus (Const (IntVal 2)) (Const (IntVal 2)))],
+  [testCase "Constants0.1" $ parseString "1" @?= Right [SExp (Const (IntVal 1))],
+   testCase "Constants0.2" $ parseString "-1" @?= Right [SExp (Const (IntVal (-1)))],
+   testCase "Constants0.3" $ parseString "0" @?= Right [SExp (Const (IntVal 0))],
+   testCase "Constants0.4" $ parseString "'1'" @?= Right [SExp (Const (StringVal "1"))],
+   testCase "Constants0.5" $ parseString "[1]" @?= Right [SExp (List [Const (IntVal 1)])],
+   testCase "Constants0.6" $ parseString "['hej']" @?= Right [SExp (List [Const (StringVal "hej")])],
+   testCase "Constants0.7" $ parseString "[[1]]" @?= Right [SExp (List [List [Const (IntVal 1)]])],
+   testCase "Constants0.8" $ parseString "xx" @?= Right [SExp (Var "xx")],
+   testCase "Constants0.9" $ parseString "None" @?= Right [SExp (Const (NoneVal))],
+   testCase "Constants0.10" $ parseString "True" @?= Right [SExp (Const (TrueVal))],
+   testCase "Constants0.11" $ parseString "False" @?= Right [SExp (Const (FalseVal))],
+   testCase "Constants0.12" $ parseString "[True]" @?= Right [SExp (List [Const (TrueVal)])],
+   testCase "Constants0.13" $ parseString "[None]" @?= Right [SExp (List [Const (NoneVal)])],
+   testCase "Plus 2+2" $ parseString "2+2" @?= Right [SExp (Oper Plus (Const (IntVal 2)) (Const (IntVal 2)))],
    testCase "Plus (-2)+2" $ parseString "(-2)+2" @?= Right [SExp (Oper Plus (Const (IntVal (-2) )) (Const (IntVal 2)))],
    testCase "Plus -2+2" $ parseString "-2+2" @?= Right [SExp (Oper Plus (Const (IntVal (-2) )) (Const (IntVal 2)))],
    testCase "Plus (-2)(-2)" $ parseString "(-2)+(-2)" @?= Right [SExp (Oper Plus (Const (IntVal (-2) )) (Const (IntVal (-2))))],
@@ -103,5 +116,5 @@ testingMathOperators = testGroup "testingMathOperators"
    testCase "List empty" $ parseString " [  ] " @?= Right [SExp (List [])],
    testCase "List values" $ parseString " ['hej', 'med', 'dig', 1] " @?= Right [SExp (List [Const (StringVal "hej"), Const (StringVal "med"), Const (StringVal "dig"), Const (IntVal 1)])],
    testCase "List Comprehension" $ parseString "[x for y in 2+2 if 3]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Oper Plus (Const (IntVal 2)) (Const (IntVal 2))),CCIf (Const (IntVal 3))])],
-   testCase "List Comprehension advanced" $ parseString "[x for y in 2+2 if 3 if 4 for z in 5*5]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Oper Plus (Const (IntVal 2)) (Const (IntVal 2))),CCIf (Const (IntVal 3)),CCIf (Const (IntVal 4)),CCFor "z" (Oper Times (Const (IntVal 5)) (Const (IntVal 5)))])]
+   testCase "List Comprehension advanced" $ parseString "[x for y in 2+2 if 3 if 4 for z in 5*5]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Oper Plus (Const (IntVal 2)) (Const (IntVal 2))),CCIf (Const (IntVal 3)),CCIf (Const (IntVal 4)),CCFor "z" (Oper Times (Const (IntVal 5)) (Const (IntVal 5)))])] 
    ]
