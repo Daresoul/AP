@@ -27,21 +27,39 @@ parseString s = do  p <- parse stmts "Error" s
 isInList :: Eq a => a -> [a] -> Bool
 isInList s list = any (\k -> s == k ) list
 
+singleSpaceTab :: GenParser Char st Char
+singleSpaceTab = try (do        tab
+                                return '\t')
+        <|> try (do     endOfLine
+                        return '\n')
+        <|> try (do     space
+                        return ' ')
+
+spaceTab :: GenParser Char st ()
+spaceTab = try (do      tab
+                        spaceTab)
+        <|> try (do     endOfLine
+                        spaceTab)
+        <|> try (do     space
+                        spaceTab)
+        <|> try (do     spaces
+                        return ())
 
 -- parses the list of statments that makes up a program.                                    
 stmts :: GenParser Char st [Stmt]
-stmts = do  s1 <- stmt
-            spaces
+stmts = do  spaceTab
+            s1 <- stmt
+            spaceTab
             stmtl <- stmtsL s1
-            spaces
+            spaceTab
             eof
             return stmtl
 
 --aux. function, it is a factorized verison of stmts.
 stmtsL :: Stmt -> GenParser Char st [Stmt]
-stmtsL s = do   spaces
+stmtsL s = do   spaceTab
                 char ';'
-                spaces
+                spaceTab
                 s2 <- stmts
                 return (s:s2)
             <|> return [s]
@@ -50,11 +68,11 @@ stmtsL s = do   spaces
 stmt :: GenParser Char st Stmt
 stmt = try (
     do  id <- identString
-        spaces
+        spaceTab
         char '='
-        spaces
+        spaceTab
         e1 <- expr
-        spaces
+        spaceTab
         return (SDef id e1))
     <|> do  e1 <- expr
             return (SExp e1)
@@ -64,22 +82,22 @@ stmt = try (
 --expressions. 
 term :: GenParser Char st Exp
 term = try notExp
+    <|> try parenthesis
     <|> try list
     <|> try listComprehension
-    <|> try parenthesis
     <|> try noneConst
     <|> try trueConst
     <|> try falseConst
     <|> try ident
     <|> try stringConst
     <|> try numConst
-    <|> do comment
-           expr
+    <|> try (do comment
+                expr)
 
 --the top of the expr function stack. the parsing "entrance" to the lower
 --parsing functions, comes from teh program statements into this.
 expr :: GenParser Char st Exp
-expr =  try (do spaces
+expr =  try (do spaceTab
                 t1 <- term
                 multOp t1)
      <|> term
@@ -89,7 +107,7 @@ expr =  try (do spaces
 --of both this and multOp and their connection should be taken up for revision.
 addOp :: Exp -> GenParser Char st Exp
 addOp e = try (do       op <- operator
-                        spaces
+                        spaceTab
                         e2 <- term
                         multOp (Oper op e e2))
         <|> return e
@@ -101,7 +119,7 @@ addOp e = try (do       op <- operator
 -- would probably be the first to be refactored (changed) had we had more time.
 multOp :: Exp -> GenParser Char st Exp
 multOp e = try (do      op <- operatorHigherPrecedence
-                        spaces
+                        spaceTab
                         e2 <- term
                         case e of
                            Oper Times _ _ -> multOp (Oper op e e2)
@@ -111,44 +129,70 @@ multOp e = try (do      op <- operatorHigherPrecedence
                            _ -> multOp (Oper op e e2) -- if e is term
                 )
         <|> try (
-                do spaces
+                do spaceTab
                    string "=="
-                   spaces
+                   spaceTab
                    e2 <- expr
-                   spaces
+                   spaceTab
                    return (Oper Eq e e2)
+        )      
+        <|> try (
+                do spaceTab
+                   string "!="
+                   spaceTab
+                   e2 <- expr
+                   spaceTab
+                   return (Not (Oper Eq e e2))
         )        
         <|> try (
-                do spaces
+                do spaceTab
                    string "<="
-                   spaces
+                   spaceTab
                    e2 <- expr
-                   spaces
-                   return (Oper Less e $ Oper Plus e2 $ Const $ IntVal 1)
+                   spaceTab
+                   return (Not (Oper Greater e e2))
         )
         <|> try (
-                do spaces
+                do spaceTab
                    string ">="
-                   spaces
+                   spaceTab
                    e2 <- expr
-                   spaces
-                   return (Oper Less e2 $ Oper Plus e $ Const $ IntVal 1)
+                   spaceTab
+                   return (Not ((Oper Less e e2)))
         )
         <|> try (
-                do spaces
+                do spaceTab
                    char '<'
-                   spaces
+                   spaceTab
                    e2 <- expr
-                   spaces
+                   spaceTab
                    return (Oper Less e e2)
         )
         <|> try (
-                do spaces
+                do spaceTab
                    char '>'
-                   spaces
+                   spaceTab
                    e2 <- expr
-                   spaces
+                   spaceTab
                    return (Oper Greater e e2)
+        )
+        <|> try (
+                do spaceTab
+                   string "in"
+                   space
+                   e2 <- expr
+                   spaceTab
+                   return (Oper In e e2)
+        )
+        <|> try (
+                do spaceTab
+                   string "not"
+                   singleSpaceTab
+                   string "in"
+                   spaceTab
+                   e2 <- expr
+                   spaceTab
+                   return (Not (Oper In e e2))
         )
         <|> addOp e
 
@@ -163,25 +207,23 @@ comment = do char '#'
 -- listEndChar) and uses the exprz to handle the list parsing.
 -- teh second case is for empty lists.
 list :: GenParser Char st Exp
-list = try (do  spaces
-                char listStartChar
-                spaces
+list =  try (do char listStartChar
+                spaceTab
+                char listEndChar
+                return (List []))
+        <|> do  char listStartChar
+                spaceTab
                 ez1 <- exprz
-                spaces
+                spaceTab
                 char listEndChar
-                spaces
-                return (List ez1))
-      <|> do    spaces
-                char listStartChar
-                spaces
-                char listEndChar
-                return (List [])
+                spaceTab
+                return (List ez1)
 
 --first part of list comprehension. Finds the leading [ symbol
---remove spaces, calls the expression and initiates the latter part.
+--remove spaceTab, calls the expression and initiates the latter part.
 listComprehension :: GenParser Char st Exp
 listComprehension = do  char '['
-                        spaces
+                        spaceTab
                         e <- expr
                         listComprehensionL e
 
@@ -196,10 +238,10 @@ listComprehensionL e = do   f <- forClause
 
 --meta function for clauses (both if and for.).
 clauses :: [CClause] -> GenParser Char st [CClause]
-clauses e = do  spaces
+clauses e = do  spaceTab
                 f <- forClause
                 clauses ((++) e [f])
-            <|> do  spaces
+            <|> do  spaceTab
                     i <- ifClause
                     clauses ((++) e [i])
             <|> return e
@@ -213,7 +255,7 @@ forClause = do  string "for"
                 string "in"
                 space
                 e2 <- expr
-                spaces
+                spaceTab
                 return (CCFor id e2)
 
 --parser for the if-clause, returns if and the expression
@@ -222,31 +264,36 @@ ifClause :: GenParser Char st CClause
 ifClause = do   string "if"
                 space
                 e1 <- expr
-                spaces
+                spaceTab
                 return (CCIf e1)        
 
 exprz :: GenParser Char st [Exp]
-exprz = exprs
-    <|> return []
+exprz = try (exprs)
+        <|> return []
 
 exprs :: GenParser Char st [Exp]
-exprs = do  e1 <- expr
-            spaces
-            exprsL e1
+exprs = do      e1 <- expr
+                spaceTab
+                exprsL e1
+        <|> do return []
 
---
 exprsL :: Exp -> GenParser Char st [Exp]
-exprsL e =  do  char ','
-                spaces
-                e2 <- exprs
-                return ((++) [e] e2)
+exprsL e =  try (do     char ','
+                        spaceTab
+                        e2 <- exprs
+                        return ((++) [e] e2))
         <|> do  return [e]
 
 -- calls a function by its name with the given argument(s)
 functionCall :: String -> GenParser Char st Exp
-functionCall id = do    space
+functionCall id = try (do       spaceTab
+                                char '('
+                                spaceTab
+                                char ')'
+                                return (Call id []))
+                <|> do  spaceTab
                         char '('
-                        e1 <- exprs
+                        e1 <- exprz
                         char ')'
                         return (Call id e1)
 
@@ -263,7 +310,7 @@ idenL s = try (functionCall s)
 
 --function using the identString specifically for variables
 idenVar :: String -> GenParser Char st Exp
-idenVar s = do  spaces
+idenVar s = do  spaceTab
                 return (Var s)
 
 --Finds and parses an identifier (variable name). first checks
@@ -282,30 +329,36 @@ identString = try (do   c <- satisfy (\c -> isLetter c || c == '_')
 --order of presedence, as this should be "dominant" yet is not.
 --does work for + and -
 parenthesis :: GenParser Char st Exp 
-parenthesis = do    spaces
+parenthesis = do    spaceTab
                     char '('
-                    spaces
+                    spaceTab
                     e <- expr
-                    spaces
+                    spaceTab
                     char ')'
-                    spaces
+                    spaceTab
                     return e
 
 -- for passing not expressions. finds the not keyword,
 -- then returns Not and the rest of the expression is handled.
 -- an aux. function to the expr function stack
 notExp :: GenParser Char st Exp
-notExp = do spaces
-            string "not"
-            space
-            e2 <- expr
-            return (Not e2)
+notExp = try (do        spaceTab
+                        string "not"
+                        e2 <- expr
+                        return (Not e2))
+        <|> do  spaceTab
+                string "not"
+                e2 <- parenthesis
+                return (Not e2)
 
--- for parsing strings. first checks for prefixed spaces
+-- [SExp (Call "f" [List [Const FalseVal,Oper Plus (Const (IntVal 2)) (Var "y"),Not (Var "z"),List [Var "u"]]])]
+-- [SExp (Call "f" [List [Const FalseVal,Oper Plus (Const (IntVal 2)) (Var "y"),Not (Var "z"),List [Var "u"]]])]
+
+-- for parsing strings. first checks for prefixed spaceTab
 -- then calls helper function to check for potential garbage 
 -- in string and handle the string properly. 
 stringConst :: GenParser Char st Exp
-stringConst = do    spaces
+stringConst = do    spaceTab
                     char stringChar
                     stringconstIntermediate ""
 
@@ -329,12 +382,12 @@ stringconstIntermediate s = try (do string "\\'"
 
 -- for parsing numbers. We check first that the number does not
 -- having prefixed 0's (e.g. 007) as this should error.
--- we then satifies that it is a digit, and then remove spaces
+-- we then satifies that it is a digit, and then remove spaceTab
 -- for then to return the value in its correct form.
 numConst :: GenParser Char st Exp
 numConst = try ( do     c <- noneOf "0+"
                         e1 <- many1 (satisfy (\c -> isDigit c))
-                        spaces
+                        spaceTab
                         return (Const (IntVal (read ((++) [c] e1)))))
         <|> try ( do    char '-'
                         c <- noneOf "0 +"
@@ -364,10 +417,10 @@ trueConst = do string "True"
 -- an aux function for the expr function stack.
 operator :: GenParser Char st Op
 operator = do   char '+'
-                spaces
+                spaceTab
                 return Plus
     <|> do  char '-'
-            spaces
+            spaceTab
             return Minus
 
 -- function that parses for higher order of precedens chracters as * 
@@ -375,12 +428,12 @@ operator = do   char '+'
 -- an auxillary function to the expr function stack 
 operatorHigherPrecedence :: GenParser Char st Op
 operatorHigherPrecedence = do   char '*'
-                                spaces
+                                spaceTab
                                 return Times
     <|> do  string "//"
-            spaces
+            spaceTab
             return Div
     <|> do  char '%'
-            spaces
+            spaceTab
             return Mod
     
