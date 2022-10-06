@@ -10,7 +10,8 @@ testsuite() ->
        [ test_start_server(),
          test_start_5_servers(),
          test_shortcode_smiley(),
-         test_lookup()
+         test_lookup(),
+         test_multi_lookup()
        ]
       }
     ].
@@ -39,13 +40,33 @@ test_shortcode_smiley() ->
      end }.
 
 test_lookup() ->
-    {"We can call start/1, 5 times and it does not crash",
+    {"We can call lookup/1, and find a specific emoji",
      fun () ->
        {ok, S} = emoji:start([]),
        emoji:new_shortcode(S, "123", "321"),
        emoji:lookup(S, "123"),
        ?assertMatch({ok, _}, emoji:start([]))
      end }.
+
+test_lookup() ->
+    {"We can call lookup/1, and find a specific emoji",
+     fun () ->
+       {ok, S} = emoji:start([]),
+       emoji:new_shortcode(S, "123", "321"),
+       ?assertMatch({ok, _}, emoji:lookup(S, "321")).
+       ?assertMatch({ok, _}, emoji:lookup(S, "5125125")).
+     end }.
+
+
+test_multi_lookup() ->
+    {"We can call multiple lookups lookup/1, and find a specific emoji",
+      fun () ->
+        {ok, S} = emoji:start([]),
+        emoji:new_shortcode(S, "123", "321"),
+        emoji:new_shortcode(S, "234", "333"),
+        ?assertMatch({ok, _}, emoji:lookup(S, "321")).
+        ?assertMatch({ok, _}, emoji:lookup(S, "333")).
+      end }.
 
 
 % c(emoji). E = emoji:start([]).

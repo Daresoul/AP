@@ -22,7 +22,7 @@ start(Initial) ->
     E = spawn(fun() -> loop(Initial, []) end),
     {ok, E}
   catch 
-    _:_ -> {error, "The server did not start (Start it with an empty list)."}
+    _:reason -> {error, reason}
   end .
 
 new_shortcode(E, Short, Emo) ->
@@ -69,7 +69,6 @@ stop(E) ->
 
 request_reply_different_server(Pid, Request) ->
   Pid ! {self(), Request},
-
   receive
     {_From, Response} ->
       Response
