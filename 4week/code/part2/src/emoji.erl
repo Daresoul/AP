@@ -35,13 +35,15 @@ delete(E, Short) ->
 lookup(E, Short) ->
   request_reply_different_server(E, {look_up_short, Short}).
 
-analytics(_, _, _, _, _) -> not_implemented.
+analytics(E, Short, Fun, Label, Init) -> 
+  request_reply(E, {create_analytics, Fun, Label, Init, Short}).
 
 get_analytics(_, _) -> not_implemented.
 
 remove_analytics(_, _, _) -> not_implemented.
 
-stop(_) -> not_implemented.
+stop(E) -> 
+    exit(E, kill).
 
 %%%%%%%%%%%%
 %% SERVER %%
@@ -91,11 +93,13 @@ loop(State, Aliases) ->
     {From, get_state} ->
       From ! {self(), {State, Aliases}},
       loop(State, Aliases)
+    {From, {create_analytics, Fun, Label, Init, Short}}
   end.
 
 %%%%%%%%%%%%%
 %% HELPERS %%
 %%%%%%%%%%%%%
+
 delete_helper(From, Short, State, Aliases) ->
   NewState = perform_delete_state(State, Short, []),
   NewAliases = perform_delete_aliases(Aliases, Short, []),
@@ -126,6 +130,10 @@ perform_delete_state(State, Short, NewState) ->
 % perform_lookup(To, State, _) when State == [] ->
 %   To ! {self(), {ok, error}}; % send error instead
 
+
+%The outer inner function of the lookup stack. This and perform_lookup_inner will alterate
+%creating Try/catch blocks on each level of the recursive calls, making sure
+%That unwanted crashes does not occur, instead a controlled error message is produced.
 perform_lookup(To, State, Short) ->
   try 
     perform_lookup_inner(To, State, Short)
@@ -133,6 +141,9 @@ perform_lookup(To, State, Short) ->
     _:_ -> To ! {self(), {ok, "The given emoji could not be found."}}
   end .
 
+%The inner function of the lookup stack. This and perform_lookup will alterate
+%creating Try/catch blocks on each level of the recursive calls, making sure
+%That unwanted crashes does not occur, instead a controlled error message is produced.
 perform_lookup_inner(To, State, Short) -> 
     [Head|Tail] = State,
     {Name, Bitcode} = Head,
