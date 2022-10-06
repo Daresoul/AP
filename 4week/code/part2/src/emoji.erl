@@ -4,7 +4,7 @@
 
 -export([start/1, new_shortcode/3, alias/3, delete/2, lookup/2,
          analytics/5, get_analytics/2, remove_analytics/3,
-         stop/1, get_state/1]).
+         stop/1, get_state/1, perform_lookup/3]).
 
 %-type shortcode() :: string().
 %-type emoji() :: binary().
@@ -83,7 +83,6 @@ loop(State, Aliases) ->
     {From, get_state} ->
       From ! {self(), State},
       loop(State, Aliases)
-
   end.
 
 %%%%%%%%%%%%%
@@ -96,21 +95,28 @@ perform_delete(State, Short, NewState) ->
   [Head|Tail] = State,
   {Name, Bitcode} = Head,
   if
-    Name == Short -> perform_delete(Tail, Short, NewState);
+    Name =:= Short -> perform_delete(Tail, Short, NewState);
     Name /= Short -> perform_delete(Tail, Short, lists:append([NewState, Head]))
   end.
 
 
-perform_lookup(To, State, _) when State == [] ->
-  To ! {self(), {ok, error}}; % send error instead
+% perform_lookup(To, State, _) when State == [] ->
+%   To ! {self(), {ok, error}}; % send error instead
 
 perform_lookup(To, State, Short) ->
-  [Head|Tail] = State,
-  {Name, Bitcode} = Head,
-  if
-    Name == Short -> To ! {self(), {ok, Bitcode}};
-    Name /= Short -> perform_lookup(To, Tail, Short)
-  end.
+  try 
+    perform_lookup_inner(To, State, Short)
+  catch
+    _:_ -> To ! {self(), {ok, "The given emoji could not be found."}}
+  end .
+
+perform_lookup_inner(To, State, Short) -> 
+    [Head|Tail] = State,
+    {Name, Bitcode} = Head,
+    if
+      Name == Short -> To ! {self(), {ok, Bitcode}};
+      Name /= Short -> perform_lookup(To, Tail, Short)
+    end .
 
 % c(emoji). E = emoji:start([]).
 % emoji:new_shortcode(E, "123", "321").
