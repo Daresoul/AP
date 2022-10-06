@@ -276,7 +276,7 @@ perform_lookup_inner(Server, Analytics, From, State, Short) ->
         end
     end.
 
-% c(emoji). E = emoji:start([]).
+% c(emoji). {ok, E} = emoji:start([]).
 % emoji:new_shortcode(E, "123", "321").
 % emoji:lookup(E, "123").
 % emoji:alias(E, "lol", "123").
