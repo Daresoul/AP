@@ -17,15 +17,23 @@
 get_state(E) ->
   request_reply(E, get_state).
 
-start(Initial) -> spawn(fun() ->
-  loop(Initial, [])
-                        end).
+start(Initial) -> 
+  try 
+    E = spawn(fun() -> loop(Initial, []) end),
+    {ok, E}
+  catch 
+    _:_ -> {error, "The server did not start (Start it with an empty list)."}
+  end .
 
 new_shortcode(E, Short, Emo) ->
-  case lookup(E, Short) of
-    {ok, Bitcode} -> {error, 'Emoji with this short is already registered.'};
-    no_emoji -> request_reply(E, {add_short_code, Short, Emo})
-  end.
+  try 
+    case lookup(E, Short) of
+      {ok, _} -> {error, 'Emoji with this short is already registered.'};
+      no_emoji -> request_reply(E, {add_short_code, Short, Emo})
+    end
+  catch 
+    error:reason -> {error, reason}
+  end .
 
 
 alias(E, Short1, Short2) ->
@@ -47,7 +55,8 @@ lookup(E, Short) ->
 analytics(E, Short, Fun, Label, Init) ->
   request_reply(E, {analytics_create, Short, Fun, Init, Label}).
 
-get_analytics(_, _) -> not_implemented.
+get_analytics(E, Short) -> 
+  request_reply(E, {analytics_return, Short}).
 
 remove_analytics(_, _, _) -> not_implemented.
 
@@ -67,12 +76,11 @@ request_reply_different_server(Pid, Request) ->
   end.
 
 request_reply(Pid, Request) ->
-  Pid ! {self(), Request},
-
-  receive
-    {Pid, Response} ->
-      Response
-  end.
+    Pid ! {self(), Request},
+    receive
+      {Pid, Response} ->
+        Response
+    end .
 
 loop(State, Analytics) ->
   receive
@@ -106,10 +114,10 @@ loop(State, Analytics) ->
       From ! {self(), ok},
       loop(State, NewAnalytics);
 
-    {From, {new_state, NewState}} -> % helper for delete
+    {_From, {new_state, NewState}} -> % helper for delete
       loop(NewState, Analytics);
 
-    {From, {new_analytics_state, NewAnalytics}} ->
+    {_From, {new_analytics_state, NewAnalytics}} ->
       loop(State, NewAnalytics);
 
     {From, get_state} ->
@@ -120,6 +128,7 @@ loop(State, Analytics) ->
 %%%%%%%%%%%%%
 %% HELPERS %%
 %%%%%%%%%%%%%
+
 run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
   try
     run_analytics_inner(To, Analytics, LookForShort, NewAnalytics)
@@ -139,8 +148,6 @@ run_analytics_inner(To, Analytics, LookForShort, NewAnalytics) ->
       NewAnalytic = lists:append(Analytics, [Head]),
       run_analytics(To, Tail, LookForShort, NewAnalytic)
   end.
-
-
 
 
 perform_delete(From, Short, State, NewState) ->
@@ -164,7 +171,7 @@ perform_delete_inner(From, Short, State, NewState) ->
     {Name, Bitcode} ->
       if
         Name == Short ->
-          NewStates = perform_delete(From, Tail, Short, NewState);
+          perform_delete(From, Tail, Short, NewState);
         Name /= Short ->
           NewStates = lists:append(NewState, [{Name, Bitcode}]),
           perform_delete(From, Short, Tail, NewStates)
@@ -172,6 +179,10 @@ perform_delete_inner(From, Short, State, NewState) ->
   end.
 
 
+
+%The outer function of the lookup stack. This and perform_lookup_inner will alterate
+%creating Try/catch blocks on each level of the recursive calls, making sure
+%That unwanted crashes does not occur, instead a controlled error message is produced.
 perform_lookup(Server, Analytics, From, State, Short) ->
   try
     perform_lookup_inner(Server, Analytics, From, State, Short)
@@ -179,6 +190,9 @@ perform_lookup(Server, Analytics, From, State, Short) ->
     _:_ -> From ! {self(), no_emoji}
   end .
 
+%The inner function of the lookup stack. This and perform_lookup will alterate
+%creating Try/catch blocks on each level of the recursive calls, making sure
+%That unwanted crashes does not occur, instead a controlled error message is produced.
 perform_lookup_inner(Server, Analytics, From, State, Short) ->
     [Head|Tail] = State,
     case Head of
