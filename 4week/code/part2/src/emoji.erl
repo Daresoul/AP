@@ -6,9 +6,9 @@
          analytics/5, get_analytics/2, remove_analytics/3,
          stop/1, get_state/1, perform_lookup/3]).
 
-%-type shortcode() :: string().
-%-type emoji() :: binary().
-%-type analytic_fun(State) :: fun((shortcode(), State) -> State).
+-type shortcode() :: string().
+-type emoji() :: binary().
+-type analytic_fun(State) :: fun((shortcode(), State) -> State).
 
 %%%%%%%%%
 %% API %%
@@ -25,9 +25,9 @@ new_shortcode(E, Short, Emo) ->
   request_reply(E, {add_short_code, Short, Emo}).
 
 alias(E, Short1, Short2) ->
-  {LShort1, Bitcode1} = lookup(E, Short1), % take care of there can be errors here (maybe case of?)
+  %{LShort1, Bitcode1} = lookup(E, Short1), % take care of there can be errors here (maybe case of?)
   %{LShort2, Bitcode2} = lookup(E, Short2), % should return an error
-  request_reply(E, {alias, Short2, Bitcode1}). % how to implement alias?
+  request_reply(E, {alias, Short2, Short1}). % how to implement alias?
 
 delete(E, Short) ->
   request_reply(E, {delete_short, Short}).
@@ -51,7 +51,7 @@ request_reply_different_server(Pid, Request) ->
   Pid ! {self(), Request},
 
   receive
-    {From, Response} ->
+    {_From, Response} ->
       Response
   end.
 
@@ -70,35 +70,58 @@ loop(State, Aliases) ->
       From ! {self(), ok},
       loop(NewState, Aliases);
     {From, {look_up_short, Short}} -> % for lookup
+      Self = self(),
       spawn(fun() ->
         perform_lookup(From, State, Short)
       end),
       loop(State, Aliases);
-    {From, {delete_short, Short}} -> % for delete
-      NewState = perform_delete(State, Short, []),
+    {From, {alias, Short1, Short2}} -> % for alias
+      NewAliases = lists:append(Aliases, [{Short1, Short2}]),
       From ! {self(), ok},
-      loop(NewState, Aliases);
-      % go through list
-      % remove all isntances of the shortcode.
+      loop(State, NewAliases);
+    {From, {delete_short, Short}} -> % for delete
+      Self = self(),
+      spawn(fun() ->
+        delete_helper(Self, Short, State, Aliases)
+            end),
+      From ! {self(), ok},
+      loop(State, Aliases);
+    {From, {new_state, NewState, NewAlias}} ->
+      loop(NewState, NewAlias);
     {From, get_state} ->
-      From ! {self(), State},
+      From ! {self(), {State, Aliases}},
       loop(State, Aliases)
   end.
 
 %%%%%%%%%%%%%
 %% HELPERS %%
 %%%%%%%%%%%%%
-perform_delete(State, _, NewState) when State == [] ->
+delete_helper(From, Short, State, Aliases) ->
+  NewState = perform_delete_state(State, Short, []),
+  NewAliases = perform_delete_aliases(Aliases, Short, []),
+  From ! {self(), {new_state, NewState, NewAliases}}.
+
+perform_delete_aliases(Aliases, _, NewAlias) when Aliases == [] ->
+  NewAlias;
+
+perform_delete_aliases(Aliases, Short, NewAlias) ->
+  [Head|Tail] = Aliases,
+  {Aliased, Name} = Head,
+  if
+    Name == Short -> perform_delete_aliases(Tail, Short, NewAlias);
+    Name /= Short -> perform_delete_aliases(Tail, Short, lists:append([NewAlias, Head]))
+  end.
+
+perform_delete_state(State, _, NewState) when State == [] ->
   NewState;
 
-perform_delete(State, Short, NewState) ->
+perform_delete_state(State, Short, NewState) ->
   [Head|Tail] = State,
   {Name, Bitcode} = Head,
   if
-    Name =:= Short -> perform_delete(Tail, Short, NewState);
-    Name /= Short -> perform_delete(Tail, Short, lists:append([NewState, Head]))
+    Name == Short -> perform_delete_state(Tail, Short, NewState);
+    Name /= Short -> perform_delete_state(Tail, Short, lists:append([NewState, Head]))
   end.
-
 
 % perform_lookup(To, State, _) when State == [] ->
 %   To ! {self(), {ok, error}}; % send error instead
@@ -124,4 +147,6 @@ perform_lookup_inner(To, State, Short) ->
 % emoji:alias(E, "lol", "123").
 % emoji:get_state(E).
 % emoji:delete(E, "123").
-%
+
+% c(emoji). E = emoji:start([]). emoji:new_shortcode(E, "123", "321"). emoji:lookup(E, "123").
+% c(emoji). E = emoji:start([]). emoji:new_shortcode(E, "123", "321"). emoji:alias(E, "lol", "123"). emoji:delete(E, "123").
