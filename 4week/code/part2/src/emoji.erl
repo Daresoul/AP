@@ -55,10 +55,11 @@ lookup(E, Short) ->
 analytics(E, Short, Fun, Label, Init) ->
   request_reply(E, {analytics_create, Short, Fun, Init, Label}).
 
-get_analytics(E, Short) -> 
-  request_reply(E, {analytics_return, Short}).
+get_analytics(E, Short) ->
+  request_reply_different_server(E, {analytics_get, Short}).
 
-remove_analytics(_, _, _) -> not_implemented.
+remove_analytics(E, Short, Label) ->
+  request_reply_different_server(E, {analytics_remove, Short, Label}).
 
 stop(E) -> 
     exit(E, kill).
@@ -109,15 +110,34 @@ loop(State, Analytics) ->
       From ! {self(), ok},
       loop(State, Analytics);
 
-    {From, {analytics_create, Short, Fun, Init, Label}} ->
-      NewAnalytics = lists:append(Analytics, [{Label, Fun, Init, Short}]),
-      From ! {self(), ok},
-      loop(State, NewAnalytics);
+    {From, {analytics_create, Short, Fun, Init, Label}} -> % create analytics
+      case analytics_label_exists_with_short(Analytics, Label, Short) of
+        nothing ->
+          NewAnalytics = lists:append(Analytics, [{Label, Fun, Init, Short}]),
+          From ! {self(), ok},
+          loop(State, NewAnalytics);
+        exists ->
+          From ! {self(), {error, 'Combination of Label and short already exits'}},
+          loop(State, Analytics)
+      end;
+
+    {From, {analytics_get, Short}} -> % get analytics
+      spawn(fun() ->
+        get_analytics(From, Analytics, Short, [])
+            end),
+      loop(State, Analytics);
+
+    {From, {analytics_remove, Short, Label}} -> % remove analytics
+      Self = self(),
+      spawn(fun() ->
+        remove_analytic(Self, From, Analytics, Short, Label, [])
+            end),
+      loop(State, Analytics);
 
     {_From, {new_state, NewState}} -> % helper for delete
       loop(NewState, Analytics);
 
-    {_From, {new_analytics_state, NewAnalytics}} ->
+    {_From, {new_analytics_state, NewAnalytics}} -> % helper for analytics
       loop(State, NewAnalytics);
 
     {From, get_state} ->
@@ -128,6 +148,50 @@ loop(State, Analytics) ->
 %%%%%%%%%%%%%
 %% HELPERS %%
 %%%%%%%%%%%%%
+remove_analytic(Self, From, Analytics, _LookingForShort, _LookingForLabel, NewAnalytics) when Analytics == [] ->
+  From ! {self(), ok},
+  Self ! {self(), {new_analytics_state, NewAnalytics}};
+
+remove_analytic(Self, From, Analytics, LookingForShort, LookingForLabel, NewAnalytics) ->
+  [Head|Tail] = Analytics,
+  {Label, Fun, Val, Short} = Head,
+  if
+    ((Label == LookingForLabel) and (Short == LookingForShort)) -> remove_analytic(Self, From, Tail, LookingForShort, LookingForLabel, NewAnalytics);
+    true ->
+      NewAnalytic = lists:append(NewAnalytics, [Head]),
+      remove_analytic(Self, From, Tail, LookingForShort, LookingForLabel, NewAnalytic)
+  end.
+
+
+analytics_label_exists_with_short(Analytics, _LookingForLabel, _LookingForShort) when Analytics == [] ->
+  nothing;
+
+analytics_label_exists_with_short(Analytics, LookingForLabel, LookingForShort) ->
+  [Head|Tail] = Analytics,
+  {Label, Fun, Val, Short} = Head,
+  if
+    ((Label == LookingForLabel) and (Short == LookingForShort)) -> exists;
+    true -> analytics_label_exists_with_short(Tail, LookingForLabel, LookingForShort)
+  end.
+
+
+get_analytics(From, Analytics, LookingForShort, Result) ->
+  try
+    get_analytics_inner(From, Analytics, LookingForShort, Result)
+  catch
+    _:_ -> From ! {self(), {ok, Result}}
+  end .
+
+get_analytics_inner(From, Analytics, LookingForShort, Result) ->
+  [Head|Tail] = Analytics,
+  {Label, Fun, Val, Short} = Head,
+  if
+    LookingForShort == Short ->
+      Results = lists:append(Result, [{Label, Val}]),
+      get_analytics(From, Tail, LookingForShort, Results);
+    true ->
+      get_analytics(From, Tail, LookingForShort, Result)
+  end.
 
 run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
   try
@@ -222,6 +286,8 @@ perform_lookup_inner(Server, Analytics, From, State, Short) ->
 
 % E, Short, Fun, Label, Init
 % emoji:analytics(E, "123", (fun(X) -> X+1 end), "Str", 0).
+% emoji:get_analytics(E, "123").
+% emoji:remove_analytics(E, "123", "Str").
 
 % c(emoji). E = emoji:start([]). emoji:new_shortcode(E, "123", "321"). emoji:lookup(E, "123").
 % c(emoji). E = emoji:start([]). emoji:new_shortcode(E, "123", "321"). emoji:alias(E, "lol", "123"). emoji:delete(E, "123").
