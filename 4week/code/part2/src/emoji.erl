@@ -4,7 +4,7 @@
 
 -export([start/1, new_shortcode/3, alias/3, delete/2, lookup/2,
          analytics/5, get_analytics/2, remove_analytics/3,
-         stop/1, get_state/1, perform_lookup/3]).
+         stop/1, get_state/1]).
 
 -type shortcode() :: string().
 -type emoji() :: binary().
@@ -18,11 +18,15 @@ get_state(E) ->
   request_reply(E, get_state).
 
 start(Initial) -> spawn(fun() ->
-  loop(Initial)
+  loop(Initial, [])
                         end).
 
 new_shortcode(E, Short, Emo) ->
-  request_reply(E, {add_short_code, Short, Emo}).
+  case lookup(E, Short) of
+    {ok, Bitcode} -> {error, 'Emoji with this short is already registered.'};
+    no_emoji -> request_reply(E, {add_short_code, Short, Emo})
+  end.
+
 
 alias(E, Short1, Short2) ->
   case lookup(E, Short2) of
@@ -32,7 +36,6 @@ alias(E, Short1, Short2) ->
                        {ok, Bitcode} -> {error, 'Short1 already exists in the state.'}
                      end
   end.
-  %{LShort2, Bitcode2} = lookup(E, Short2), % should return an error
 
 
 delete(E, Short) ->
@@ -41,7 +44,8 @@ delete(E, Short) ->
 lookup(E, Short) ->
   request_reply_different_server(E, {look_up_short, Short}).
 
-analytics(_, _, _, _, _) -> not_implemented.
+analytics(E, Short, Fun, Label, Init) ->
+  request_reply(E, {analytics_create, Short, Fun, Init, Label}).
 
 get_analytics(_, _) -> not_implemented.
 
@@ -69,24 +73,24 @@ request_reply(Pid, Request) ->
       Response
   end.
 
-loop(State) ->
+loop(State, Analytics) ->
   receive
     {From, {add_short_code, Short, Emo}} -> % for new shortcode
       NewState = lists:append(State, [{Short, Emo}]),
       From ! {self(), ok},
-      loop(NewState);
+      loop(NewState, Analytics);
 
     {From, {look_up_short, Short}} -> % for lookup
       Self = self(),
       spawn(fun() ->
-        perform_lookup(From, State, Short)
+        perform_lookup(Self, Analytics, From, State, Short)
       end),
-      loop(State);
+      loop(State, Analytics);
 
     {From, {alias, NewShort, BitCode, OldShort}} -> % for alias
       NewState = lists:append(State, [{NewShort, BitCode, OldShort}]),
       From ! {self(), ok},
-      loop(NewState);
+      loop(NewState, Analytics);
 
     {From, {delete_short, Short}} -> % for delete
       Self = self(),
@@ -94,19 +98,50 @@ loop(State) ->
         perform_delete(Self, Short, State, [])
             end),
       From ! {self(), ok},
-      loop(State);
+      loop(State, Analytics);
 
-    {From, {new_state, NewState}} ->
-      loop(NewState);
+    {From, {analytics_create, Short, Fun, Init, Label}} ->
+      NewAnalytics = lists:append(Analytics, [{Label, Fun, Init, Short}]),
+      From ! {self(), ok},
+      loop(State, NewAnalytics);
+
+    {From, {new_state, NewState}} -> % helper for delete
+      loop(NewState, Analytics);
+
+    {From, {new_analytics_state, NewAnalytics}} ->
+      loop(State, NewAnalytics);
 
     {From, get_state} ->
-      From ! {self(), State},
-      loop(State)
+      From ! {self(), {State, Analytics}},
+      loop(State, Analytics)
   end.
 
 %%%%%%%%%%%%%
 %% HELPERS %%
 %%%%%%%%%%%%%
+run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
+  try
+    run_analytics_inner(To, Analytics, LookForShort, NewAnalytics)
+  catch
+    _:_ -> To ! {self(), {new_analytics_state, NewAnalytics}}
+  end .
+
+run_analytics_inner(To, Analytics, LookForShort, NewAnalytics) ->
+  [Head|Tail] = Analytics,
+  {Label, Fun, Init, Short} = Head,
+  if
+    LookForShort == Short ->
+      Result = Fun(Init),
+      NewAnalytic = lists:append(NewAnalytics, [{Label, Fun, Result, Short}]),
+      run_analytics(To, Tail, LookForShort, NewAnalytic);
+    true ->
+      NewAnalytic = lists:append(Analytics, [Head]),
+      run_analytics(To, Tail, LookForShort, NewAnalytic)
+  end.
+
+
+
+
 perform_delete(From, Short, State, NewState) ->
   try
     perform_delete_inner(From, State, Short, NewState)
@@ -136,25 +171,29 @@ perform_delete_inner(From, Short, State, NewState) ->
   end.
 
 
-perform_lookup(From, State, Short) ->
+perform_lookup(Server, Analytics, From, State, Short) ->
   try
-    perform_lookup_inner(From, State, Short)
+    perform_lookup_inner(Server, Analytics, From, State, Short)
   catch
     _:_ -> From ! {self(), no_emoji}
   end .
 
-perform_lookup_inner(From, State, Short) ->
+perform_lookup_inner(Server, Analytics, From, State, Short) ->
     [Head|Tail] = State,
     case Head of
       {Name, Bitcode, _Alias} ->
         if
-          Name == Short -> From ! {self(), {ok, Bitcode}};
-          Name /= Short -> perform_lookup(From, Tail, Short)
+          Name == Short ->
+            run_analytics(Server, Analytics, Short, []),
+            From ! {self(), {ok, Bitcode}};
+          Name /= Short -> perform_lookup(Server, Analytics, From, Tail, Short)
         end;
       {Name, Bitcode} ->
         if
-          Name == Short -> From ! {self(), {ok, Bitcode}};
-          Name /= Short -> perform_lookup(From, Tail, Short)
+          Name == Short ->
+            run_analytics(Server, Analytics, Short, []),
+            From ! {self(), {ok, Bitcode}};
+          Name /= Short -> perform_lookup(Server, Analytics, From, Tail, Short)
         end
     end.
 
@@ -164,6 +203,10 @@ perform_lookup_inner(From, State, Short) ->
 % emoji:alias(E, "lol", "123").
 % emoji:get_state(E).
 % emoji:delete(E, "123").
+
+
+% E, Short, Fun, Label, Init
+% emoji:analytics(E, "123", (fun(X) -> X+1 end), "Str", 0).
 
 % c(emoji). E = emoji:start([]). emoji:new_shortcode(E, "123", "321"). emoji:lookup(E, "123").
 % c(emoji). E = emoji:start([]). emoji:new_shortcode(E, "123", "321"). emoji:alias(E, "lol", "123"). emoji:delete(E, "123").
