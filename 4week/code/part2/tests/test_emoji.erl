@@ -22,7 +22,9 @@ testsuite() ->
          test_alias_ASCII(),
          test_analytics_creating(),
          test_analytics_creating_multiple(),
-         test_analytics_creating_exists()
+         test_analytics_creating_exists(),
+         test_analytics_creating_multiple_different(),
+         test_analytics_creating_and_deleting()
        ]
       }
     ].
@@ -169,6 +171,17 @@ test_analytics_creating_multiple() ->
         ?assertMatch(ok, emoji:analytics(S, "19", (fun(X) -> X+1 end), "Str", 0))
       end }.
 
+test_analytics_creating_multiple_different() ->
+    {"We can create multiple analytics functions to monitor specific short codes/emojies in our server",
+      fun () ->
+        {ok, S} = emoji:start([]),
+        emoji:new_shortcode(S, "42", "Mikkel"),
+        emoji:new_shortcode(S, "19", "Nicolaj"),  
+        ?assertMatch(ok, emoji:analytics(S, "42", (fun(X) -> X+1 end), "Str", 0)),
+        ?assertMatch(ok, emoji:analytics(S, "19", (fun(X) -> X++"a" end), "Str", ""))
+      end }.
+
+
 test_analytics_creating_exists() ->
     {"We can create analytics functions and see that they exists in the server state",
       fun () ->
@@ -179,6 +192,21 @@ test_analytics_creating_exists() ->
         ?assertMatch({[{"123","42"},{"42","123"}],[{"Str",_,0,"42"}]}, emoji:get_state(S))
       end }.
 
+test_analytics_creating_and_deleting() ->
+    {"We can create multiple analytics functions to monitor specific short codes/emojies in our server",
+      fun () ->
+        {ok, S} = emoji:start([]),
+        emoji:new_shortcode(S, "42", "Mikkel"),
+        ?assertMatch(ok, emoji:analytics(S, "42", (fun(X) -> X+1 end), "Str", 0)),
+        ?assertMatch(ok, emoji:remove_analytics(S, "42", "Str")),
+        ?assertMatch({[]})
+      end }.
+
+
+% emoji:analytics(E, "123", Last, "Str", 0).
+%
+% emoji:get_analytics(E, "123").
+% emoji:remove_analytics(E, "123", "Str").
 
 
 

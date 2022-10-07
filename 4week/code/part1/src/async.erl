@@ -1,26 +1,41 @@
 -module(async).
-
 -export([new/2, wait/1, poll/1]).
 
--import(string, [len/1, concat/2]).
+loop(State) -> 
+    receive
+        {_From, {fx, Fun, Arg}} -> 
+            Result = Fun (Arg),
+            loop({ok, Result});
+        {From, poll} -> 
+            From ! {self(), State},
+            loop(State);
+        {From, wait} ->
+            if 
+                State =:= {} ->
+                    From ! {notdone};
+                true ->
+                    From ! {succes, State}
+            end,
+            loop(State)
+    end . 
 
-new(Fun, Arg) ->
-  spawn(
-    fun() ->
-      Fun(Arg),
-      loop(val, beginning)
-    end).
-wait(Aid) -> request_reply(Aid, {value,done}).
-poll(Aid) -> nope.
+new(Fun, Arg) -> 
+    Aid = spawn(fun() -> loop(nothing) end),
+    Aid ! {self(), {fx, Fun, Arg}},
+    Aid .
 
-request_reply(Pid, Request) ->
-  Pid ! {self(), Request},
-  receive
-    {Pid, Response} -> Response
-  end.
+wait(Aid) -> 
+    Aid ! {self(), wait},
+    receive
+        {succes, State} ->
+            State;
+        {notdone} ->
+            wait(Aid)
+    end . 
 
-loop(Value, State) ->
-  receive
-    {From, {Fun, Arg}} ->
-      Value = Fun(Arg)
-  end.
+poll(Aid) -> 
+    Aid ! {self(), poll},
+    receive
+        {_From, {Message, State}} ->
+            {Message, State}
+    end .
