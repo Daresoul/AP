@@ -1,6 +1,7 @@
 -module(emoji).
 
 -import(lists, [append/2]).
+-import(maps, [map/2]).
 
 -export([start/1, new_shortcode/3, alias/3, delete/2, lookup/2,
          analytics/5, get_analytics/2, remove_analytics/3,
@@ -140,6 +141,10 @@ loop(State, Analytics) ->
     {_From, {new_analytics_state, NewAnalytics}} -> % helper for analytics
       loop(State, NewAnalytics);
 
+    {_From, {error, Reason}} ->
+      io:fwrite("~w\n", [Reason]),
+      loop(State, Analytics);
+
     {From, get_state} ->
       From ! {self(), {State, Analytics}},
       loop(State, Analytics)
@@ -193,7 +198,7 @@ get_analytics_inner(From, Analytics, LookingForShort, Result) ->
       get_analytics(From, Tail, LookingForShort, Result)
   end.
 
-run_analytics(To, Analytics, LookForShort, NewAnalytics) when Analytics == [] ->
+run_analytics(To, Analytics, _LookForShort, NewAnalytics) when Analytics == [] ->
   To ! {self(), {new_analytics_state, NewAnalytics}};
 
 run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
@@ -201,11 +206,13 @@ run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
   {Label, Fun, Init, Short} = Head,
   if
     LookForShort == Short ->
-      try Result = Fun(Init),
-      NewAnalytic = lists:append(NewAnalytics, [{Label, Fun, Result, Short}]),
-      run_analytics(To, Tail, LookForShort, NewAnalytic)
+      try
+        Result = Fun(Init),
+        NewAnalytic = lists:append(NewAnalytics, [{Label, Fun, Result, Short}]),
+        run_analytics(To, Tail, LookForShort, NewAnalytic)
       catch
-        _:Reason -> {error, Reason}
+        _:Reason -> To ! {self(), {error, Reason}},
+          {error, Reason}
       end;
     true ->
       NewAnalytic = lists:append(Analytics, [Head]),
