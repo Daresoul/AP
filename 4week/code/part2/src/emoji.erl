@@ -7,10 +7,6 @@
          analytics/5, get_analytics/2, remove_analytics/3,
          stop/1, get_state/1]).
 
--type shortcode() :: string().
--type emoji() :: binary().
--type analytic_fun(State) :: fun((shortcode(), State) -> State).
-
 %%%%%%%%%
 %% API %%
 %%%%%%%%%
@@ -23,15 +19,15 @@ get_state(E) ->
 % Checks if either Shortcode or Bitcode already exists in the list.
 exists_in_list(List, SearchShortcode, SearchBitcode) ->
     lists:foreach(fun(X) ->
-      {Shortcode, Bitcode} = X,
+      {Shortcode, _Bitcode} = X,
       if
-        (SearchShortcode == Shortcode) or (Bitcode == SearchBitcode) -> throw('Bitcode or Shortcode already exits.');
+        (SearchShortcode == Shortcode) -> throw(io_lib:format('Bitcode: ~w or Shortcode: ~w already exits.', [SearchBitcode, SearchShortcode]));
         true -> ok
       end
                 end, List).
 
 % Checks a list for correct formatting, as well as, checks if it they contain themselves.
-check_if_exists_in_initial_list(Initial, CurrentList) when Initial == [] ->
+check_if_exists_in_initial_list(Initial, _CurrentList) when Initial == [] ->
   ok;
 
 check_if_exists_in_initial_list(Initial, CurrentList) ->
@@ -224,7 +220,7 @@ remove_analytic(Self, From, Analytics, _LookingForShort, _LookingForLabel, NewAn
 %search of the specific analytic to remove.
 remove_analytic(Self, From, Analytics, LookingForShort, LookingForLabel, NewAnalytics) ->
   [Head|Tail] = Analytics,
-  {Label, Fun, Val, Short} = Head,
+  {Label, _Fun, _Val, Short} = Head,
   if
     ((Label == LookingForLabel) and (Short == LookingForShort)) -> remove_analytic(Self, From, Tail, LookingForShort, LookingForLabel, NewAnalytics);
     true ->
@@ -243,7 +239,7 @@ analytics_label_exists_with_short(Analytics, _LookingForLabel, _LookingForShort)
 %the list:Analytics. the "if true-> case" is simply a smart way to make an if-else statement.
 analytics_label_exists_with_short(Analytics, LookingForLabel, LookingForShort) ->
   [Head|Tail] = Analytics,
-  {Label, Fun, Val, Short} = Head,
+  {Label, _Fun, _Val, Short} = Head,
   if
     ((Label == LookingForLabel) and (Short == LookingForShort)) -> exists;
     true -> analytics_label_exists_with_short(Tail, LookingForLabel, LookingForShort)
@@ -270,7 +266,7 @@ get_analytics(From, Analytics, LookingForShort, Result) ->
 %shortcode:LookingForShort against the list:Analytics
 get_analytics_inner(From, Analytics, LookingForShort, Result) ->
   [Head|Tail] = Analytics,
-  {Label, Fun, Val, Short} = Head,
+  {Label, _Fun, Val, Short} = Head,
   if
     LookingForShort == Short ->
       Results = lists:append(Result, [{Label, Val}]),
@@ -282,7 +278,7 @@ get_analytics_inner(From, Analytics, LookingForShort, Result) ->
 %Auxilliary function which is the recursive basecase of run_analytics.
 %is catching the case where the list is empty, and the recursion therefore
 %has to stop.
-run_analytics(To, Analytics, LookForShort, NewAnalytics) when Analytics == [] ->
+run_analytics(To, Analytics, _LookForShort, NewAnalytics) when Analytics == [] ->
   To ! {self(), {new_analytics_state, NewAnalytics}};
 
 %The function that internally is applied to each lookup when a specific analytics 
