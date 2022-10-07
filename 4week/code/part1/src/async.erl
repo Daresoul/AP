@@ -24,18 +24,19 @@ loop(State) ->
 run_fx(From, Fun, Arg) ->
   try
       Result = Fun (Arg),
-      From ! {self(), {update_state, ok,Result}}
+      From ! {self(), {update_state, ok, Result}}
   catch
-    Ex:_ ->
-      From ! {self(), {update_state, error, Ex}}
+    _:Reason ->
+      From ! {self(), {update_state, exception, Reason}}
   end.
+
+
 wait_for_executed(From, Aid) ->
   case poll(Aid) of
-    {ok, nothing} ->
-      io:fwrite('Rerunning\n'),
+    nothing ->
       wait_for_executed(From, Aid);
     {ok, Res} -> From ! {self(), {ok, Res}};
-    {error, Reason} -> From ! {self(), {error, Reason}}
+    {exception, Reason} -> From ! {self(), {exception, Reason}}
   end.
 
 % c(async). N = 3. E = async:new(fun(X) -> throw(X+1) end, N). async:poll(E). async:wait(E).
@@ -51,14 +52,18 @@ wait(Aid) ->
     receive
       {_From, {ok, Res}} ->
         Res;
-      {_From, {error, Reason}} ->
-        {error, Reason}
+      {_From, {exception, Reason}} ->
+        {exception, Reason}
     end.
 
 
 poll(Aid) -> 
     Aid ! {self(), poll},
     receive
-        {_From, {Message, State}} ->
-            {Message, State}
+        {_From, State} ->
+          case State of
+            {ok, nothing} -> nothing;
+            {ok, Res} -> {ok, Res};
+            {exception, Reason} -> {exception, Reason}
+          end
     end .
