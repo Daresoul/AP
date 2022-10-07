@@ -14,9 +14,14 @@
 %% API %%
 %%%%%%%%%
 
+%returns the current state of the process (server) with the pid: E, by requesting
+%the state from the server loop.
 get_state(E) ->
   request_reply(E, get_state).
 
+%starts a new process (server) with the state Initial. e.g. calling it with a list
+%of pairs (2-tuples) or f.x. analytical functions will create an environment (state)
+%where these specific emojies or analytical functions are accessable through other commands.
 start(Initial) -> 
   try 
     E = spawn(fun() -> loop(Initial, []) end),
@@ -25,6 +30,9 @@ start(Initial) ->
     _:reason -> {error, reason}
   end .
 
+%Main function in the new shortcode function stack.
+%Creates a new shortcode:Short for the emoji:Emo and stores the new
+%projection in the E state (the current processs state) for later availability/use
 new_shortcode(E, Short, Emo) ->
   try 
     case lookup(E, Short) of
@@ -35,7 +43,9 @@ new_shortcode(E, Short, Emo) ->
     error:reason -> {error, reason}
   end .
 
-
+%Main function in the alias function stack
+%Creates an alias:New which refers to the object:Old. Cannot be called on
+%other aliases, and cannot be called on an object:Old which does not exist
 alias(E, Old, New) ->
   case lookup(E, Old) of
     no_emoji -> {error, 'No emoji with Short1.'};
@@ -45,22 +55,39 @@ alias(E, Old, New) ->
                      end
   end.
 
-
+%Main function in the delete function stack.
+%Deletes a shortcode:Short from the state:E, will simply try to delete, and
+%if no object is found for deletion, will simply pretend it deleted it anyway
+%since it should not affect the result.
 delete(E, Short) ->
   request_reply(E, {delete_short, Short}).
 
+%Main function in the lookup function stack.
+%Looks up a shortcode:Short in the state:E, will return a no_emoji if not found
+%to enable graceful handling of errors within process.
 lookup(E, Short) ->
   request_reply_different_server(E, {look_up_short, Short}).
 
+%main function in the analytics function stack
+%The user defines a function:Fun, gives it a name:Label, an
+%initial accumulator:Init, and which emoji it will be working on:Short.
+%And the current state:E. The function will then be created and ran
+%each time an emoji is looked up (e.g. used).
 analytics(E, Short, Fun, Label, Init) ->
   request_reply(E, {analytics_create, Short, Fun, Init, Label}).
 
+%Returns the analytics data for a specific Shortcode:Short in the state:E
 get_analytics(E, Short) ->
   request_reply_different_server(E, {analytics_get, Short}).
 
+%Removes analytics function for shortcode:Short, with the function name:Label
+%in the state:E. all data associated with the analytics function will also be removed
+%one cannot get the data back after deletion.
 remove_analytics(E, Short, Label) ->
   request_reply_different_server(E, {analytics_remove, Short, Label}).
 
+%stops the current server, by using the exit/2 kill, it is somehow forceful
+%and regardless of how the server is setup, termination should occur.
 stop(E) -> 
   exit(E, kill),
   ok.
@@ -76,6 +103,8 @@ request_reply_different_server(Pid, Request) ->
       Response
   end.
 
+%Auxilliary function for requesting replies from the main server loop with
+%Pid:Pid and with the request:Request
 request_reply(Pid, Request) ->
     Pid ! {self(), Request},
     receive
@@ -83,6 +112,9 @@ request_reply(Pid, Request) ->
         Response
     end .
 
+%The main server loop with the state:State and with the argument analytics
+%being an implementation chocie that holds the analytical functions of that
+%specific state.
 loop(State, Analytics) ->
   receive
     {From, {add_short_code, Short, Emo}} -> % for new shortcode
@@ -148,10 +180,18 @@ loop(State, Analytics) ->
 %%%%%%%%%%%%%
 %% HELPERS %%
 %%%%%%%%%%%%%
+
+%Auxilliary function for the remove analytic function stack
+%Is a helper which checks for the list being empty as a
+%recursive basecase match
 remove_analytic(Self, From, Analytics, _LookingForShort, _LookingForLabel, NewAnalytics) when Analytics == [] ->
   From ! {self(), ok},
   Self ! {self(), {new_analytics_state, NewAnalytics}};
 
+%The main remove_analytic function in the remove_analytic function stack.
+%calls itself recursively while looking for the short and label to remove
+%always taking the head of the list:Analytics and calling itself with the tail in
+%search of the specific analytic to remove.
 remove_analytic(Self, From, Analytics, LookingForShort, LookingForLabel, NewAnalytics) ->
   [Head|Tail] = Analytics,
   {Label, Fun, Val, Short} = Head,
@@ -162,10 +202,15 @@ remove_analytic(Self, From, Analytics, LookingForShort, LookingForLabel, NewAnal
       remove_analytic(Self, From, Tail, LookingForShort, LookingForLabel, NewAnalytic)
   end.
 
-
+%Auxilliary function for the analytics_label_exists function stack.
+%Will simply return nothing when the list:Analytics is empty, e.g the recursive
+%basecase when the label:_LookingForLabel is not found for the short:_LookingForShort
 analytics_label_exists_with_short(Analytics, _LookingForLabel, _LookingForShort) when Analytics == [] ->
   nothing;
 
+%Checks if an analytical label:LookingForLabel already exists for a given shortcode:LookingForShort
+%in the list:Analytics. Calls itself recursively with the [head|tail] structure to run through
+%the list:Analytics. the "if true-> case" is simply a smart way to make an if-else statement.
 analytics_label_exists_with_short(Analytics, LookingForLabel, LookingForShort) ->
   [Head|Tail] = Analytics,
   {Label, Fun, Val, Short} = Head,
@@ -174,14 +219,25 @@ analytics_label_exists_with_short(Analytics, LookingForLabel, LookingForShort) -
     true -> analytics_label_exists_with_short(Tail, LookingForLabel, LookingForShort)
   end.
 
+%base recursive case of the get_analytics main function stack.
+%simply checks for the empty list and then returns results.
+get_analytics(From, Analytics, _LookingForShort, Result) when Analytics == [] ->
+  From ! {self(), {ok, Result}}.
 
+%outer function for the get_analytics function stack main function.
+%Alternates between get_analytic_inner and itself to get try catch structure
+%on each level of the recursion. 
 get_analytics(From, Analytics, LookingForShort, Result) ->
   try
     get_analytics_inner(From, Analytics, LookingForShort, Result)
   catch
-    _:_ -> From ! {self(), {ok, Result}}
+    _:Reason -> From ! {self(),{error, Reason}}
   end .
 
+%Inner function fore the get_analytics function stack main function.
+%Alternates between get_analytic_inner and itself to get try catch structure
+%uses recursive calls with the [head|tail] technique to pull out and match 
+%shortcode:LookingForShort against the list:Analytics
 get_analytics_inner(From, Analytics, LookingForShort, Result) ->
   [Head|Tail] = Analytics,
   {Label, Fun, Val, Short} = Head,
@@ -193,9 +249,17 @@ get_analytics_inner(From, Analytics, LookingForShort, Result) ->
       get_analytics(From, Tail, LookingForShort, Result)
   end.
 
+%Auxilliary function which is the recursive basecase of run_analytics.
+%is catching the case where the list is empty, and the recursion therefore
+%has to stop.
 run_analytics(To, Analytics, LookForShort, NewAnalytics) when Analytics == [] ->
   To ! {self(), {new_analytics_state, NewAnalytics}};
 
+%The function that internally is applied to each lookup when a specific analytics 
+%Function has been applied to a shortcode. Uses the [head|tail] structure
+%to run through all the analytic functions currecntly active:Analytics
+%and applies the given shortcode:LookForShort to them if found.
+%returns the newAnalytics which holds updated accumulator
 run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
   [Head|Tail] = Analytics,
   {Label, Fun, Init, Short} = Head,
@@ -212,7 +276,10 @@ run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
       run_analytics(To, Tail, LookForShort, NewAnalytic)
   end.
 
-
+%The outer function of the delete function stack. It deletes
+%A short:Short from the state:State and returns a newstate:NewState
+%If none is found, it should fail gracefully as if nothing happened
+%as not deleting something that is not there does not change the outcome.
 perform_delete(From, Short, State, NewState) ->
   try
     perform_delete_inner(From, State, Short, NewState)
@@ -220,6 +287,9 @@ perform_delete(From, Short, State, NewState) ->
     _:_ -> From ! {self(), {new_state, NewState}}
   end .
 
+%Inner function being alternated between to apply the try catch on each level.
+%We wish to apply the try catch to catch unforeseen consequences, regardless of
+%deletes gracefully failing.
 perform_delete_inner(From, Short, State, NewState) ->
   [Head|Tail] = State,
   case Head of
@@ -240,8 +310,6 @@ perform_delete_inner(From, Short, State, NewState) ->
           perform_delete(From, Short, Tail, NewStates)
       end
   end.
-
-
 
 %The outer function of the lookup stack. This and perform_lookup_inner will alterate
 %creating Try/catch blocks on each level of the recursive calls, making sure

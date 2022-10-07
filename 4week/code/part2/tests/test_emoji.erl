@@ -24,19 +24,24 @@ testsuite() ->
          test_analytics_creating_multiple(),
          test_analytics_creating_exists(),
          test_analytics_creating_multiple_different(),
-         test_analytics_creating_and_deleting()
+         test_analytics_creating_and_deleting(),
+         test_works_with_small_set(),
+         test_works_with_medium_set(),
+         test_works_with_small_set_more_commands(),
+         test_works_with_medium_set_more_commands(),
+         test_stop_server()
        ]
       }
     ].
 
 test_start_server() ->
-    {"We can call start/1, 5 times and it does not crash",
+    {"We can call start/1,and it does not crash",
      fun () ->
        ?assertMatch({ok, _}, emoji:start([]))
      end }.
 
 test_start_5_servers() ->
-    {"We can call start/1 and it does not crash",
+    {"We can call start/1 5 times and it does not crash",
      fun () ->
        ?assertMatch({ok, _}, emoji:start([])),
        ?assertMatch({ok, _}, emoji:start([])),
@@ -198,31 +203,47 @@ test_analytics_creating_and_deleting() ->
         {ok, S} = emoji:start([]),
         emoji:new_shortcode(S, "42", "Mikkel"),
         ?assertMatch(ok, emoji:analytics(S, "42", (fun(X) -> X+1 end), "Str", 0)),
-        ?assertMatch(ok, emoji:remove_analytics(S, "42", "Str")),
-        ?assertMatch({[]})
+        ?assertMatch(ok, emoji:remove_analytics(S, "42", "Str"))
       end }.
 
+test_works_with_small_set() ->
+    {"We can call start/1 with small set of emojies ,and it does not crash",
+     fun () ->
+       ?assertMatch({ok, S}, emoji:start(someemoji:small()))
+     end }.
+
+test_works_with_medium_set() ->
+    {"We can call start/1 with small set of emojies ,and it does not crash",
+     fun () ->
+       ?assertMatch({ok, S}, emoji:start(someemoji:medium()))
+     end }.
+
+test_works_with_small_set_more_commands() ->
+    {"We can call start/1 with small set of emojies ,and it does not crash",
+     fun () ->
+       {ok, S} = emoji:start(someemoji:small()),
+       emoji:new_shortcode(S, "123", "42"),
+       emoji:new_shortcode(S, "42", "123"),
+       ?assertMatch(ok, emoji:analytics(S, "42", (fun(X) -> X+1 end), "Str", 0))
+     end }.
+
+test_works_with_medium_set_more_commands() ->
+    {"We can call start/1 with small set of emojies ,and it does not crash",
+     fun () ->
+       {ok, S} = emoji:start(someemoji:medium()),
+       emoji:new_shortcode(S, "123", "42"),
+       emoji:new_shortcode(S, "42", "123"),
+       ?assertMatch(ok, emoji:analytics(S, "42", (fun(X) -> X+1 end), "Str", 0))
+     end }.
+
+test_stop_server() ->
+    {"We can call start/1,and then stop/0 and it ends the server process",
+     fun () ->
+       {ok, S} = emoji:start([]),
+       emoji:stop(S),
+       emoji:new_shortcode(S, "123", "42"),
+       emoji:new_shortcode(S, "51125", "22")
+     end }.
 
 
-
-% emoji:analytics(E, "123", Last, "Str", 0).
-%
-% emoji:get_analytics(E, "123").
-% emoji:remove_analytics(E, "123", "Str").
-
-
-
-%c('src/emoji'), c('tests/test_emoji'), test_emoji:test_all().
-% c(emoji). E = emoji:start([]).
-% emoji:new_shortcode(E, "123", "321").
-% emoji:lookup(E, "123").
-% emoji:alias(E, "lol", "123").
-% emoji:get_state(E).
-% emoji:delete(E, "123").
-
-
-% E, Short, Fun, Label, Init
-% emoji:analytics(E, "123", (fun(X) -> X+1 end), "Str", 0).
-
-% c(emoji). E = emoji:start([]). emoji:new_shortcode(E, "123", "321"). emoji:lookup(E, "123").
-% c(emoji). E = emoji:start([]). emoji:new_shortcode(E, "123", "321"). emoji:alias(E, "lol", "123"). emoji:delete(E, "123").
+%c('src/emoji'), c('tests/test_emoji'), c('tests/someemoji'), test_emoji:test_all().
