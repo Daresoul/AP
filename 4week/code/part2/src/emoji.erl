@@ -236,7 +236,7 @@ get_analytics(From, Analytics, LookingForShort, Result) ->
   try
     get_analytics_inner(From, Analytics, LookingForShort, Result)
   catch
-    _:Reason -> From ! {self(),{error, Reason}}
+    _:Reason -> From ! {self(), {error, Reason}}
   end .
 
 %Inner function fore the get_analytics function stack main function.
