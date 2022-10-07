@@ -39,8 +39,6 @@ wait_for_executed(From, Aid) ->
     {exception, Reason} -> From ! {self(), {exception, Reason}}
   end.
 
-% c(async). N = 3. E = async:new(fun(X) -> throw(X+1) end, N). async:poll(E). async:wait(E).
-
 new(Fun, Arg) -> 
     Aid = spawn(fun() -> loop({ok, nothing}) end),
     Aid ! {self(), {fx, Fun, Arg}},

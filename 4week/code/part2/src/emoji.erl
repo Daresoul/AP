@@ -20,15 +20,40 @@
 get_state(E) ->
   request_reply(E, get_state).
 
+% Checks if either Shortcode or Bitcode already exists in the list.
+exists_in_list(List, SearchShortcode, SearchBitcode) ->
+    lists:foreach(fun(X) ->
+      {Shortcode, Bitcode} = X,
+      if
+        (SearchShortcode == Shortcode) or (Bitcode == SearchBitcode) -> throw('Bitcode or Shortcode already exits.');
+        true -> ok
+      end
+                end, List).
+
+% Checks a list for correct formatting, as well as, checks if it they contain themselves.
+check_if_exists_in_initial_list(Initial, CurrentList) when Initial == [] ->
+  ok;
+
+check_if_exists_in_initial_list(Initial, CurrentList) ->
+    [Head | Tail] = Initial,
+    case Head of
+      {Shortcode, Bitcode} ->
+        exists_in_list(CurrentList, Shortcode, Bitcode),
+        NewCurrentList = lists:append(CurrentList, [{Shortcode, Bitcode}]),
+        check_if_exists_in_initial_list(Tail, NewCurrentList)
+    end.
+
+
 %starts a new process (server) with the state Initial. e.g. calling it with a list
 %of pairs (2-tuples) or f.x. analytical functions will create an environment (state)
 %where these specific emojies or analytical functions are accessable through other commands.
 start(Initial) -> 
-  try 
+  try
+    check_if_exists_in_initial_list(Initial, []),
     E = spawn(fun() -> loop(Initial, []) end),
     {ok, E}
   catch 
-    _:reason -> {error, reason}
+    _:Reason -> {error, Reason}
   end .
 
 %Main function in the new shortcode function stack.
