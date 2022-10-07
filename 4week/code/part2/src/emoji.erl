@@ -36,11 +36,11 @@ new_shortcode(E, Short, Emo) ->
   end .
 
 
-alias(E, Short1, Short2) ->
-  case lookup(E, Short2) of
+alias(E, Old, New) ->
+  case lookup(E, Old) of
     no_emoji -> {error, 'No emoji with Short1.'};
-    {ok, Bitcode} -> case lookup(E, Short1) of
-                       no_emoji -> request_reply(E, {alias, Short1, Bitcode, Short2});
+    {ok, Bitcode} -> case lookup(E, New) of
+                       no_emoji -> request_reply(E, {alias, New, Bitcode, Old});
                        {ok, Bitcode} -> {error, 'Short1 already exists in the state.'}
                      end
   end.
@@ -62,7 +62,8 @@ remove_analytics(E, Short, Label) ->
   request_reply_different_server(E, {analytics_remove, Short, Label}).
 
 stop(E) -> 
-    exit(E, kill).
+  exit(E, kill),
+  ok.
 
 %%%%%%%%%%%%
 %% SERVER %%
@@ -193,21 +194,20 @@ get_analytics_inner(From, Analytics, LookingForShort, Result) ->
       get_analytics(From, Tail, LookingForShort, Result)
   end.
 
-run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
-  try
-    run_analytics_inner(To, Analytics, LookForShort, NewAnalytics)
-  catch
-    _:_ -> To ! {self(), {new_analytics_state, NewAnalytics}}
-  end .
+run_analytics(To, Analytics, LookForShort, NewAnalytics) when Analytics == [] ->
+  To ! {self(), {new_analytics_state, NewAnalytics}};
 
-run_analytics_inner(To, Analytics, LookForShort, NewAnalytics) ->
+run_analytics(To, Analytics, LookForShort, NewAnalytics) ->
   [Head|Tail] = Analytics,
   {Label, Fun, Init, Short} = Head,
   if
     LookForShort == Short ->
-      Result = Fun(Init),
+      try Result = Fun(Init),
       NewAnalytic = lists:append(NewAnalytics, [{Label, Fun, Result, Short}]),
-      run_analytics(To, Tail, LookForShort, NewAnalytic);
+      run_analytics(To, Tail, LookForShort, NewAnalytic)
+      catch
+        _:Reason -> {error, Reason}
+      end;
     true ->
       NewAnalytic = lists:append(Analytics, [Head]),
       run_analytics(To, Tail, LookForShort, NewAnalytic)
@@ -263,14 +263,18 @@ perform_lookup_inner(Server, Analytics, From, State, Short) ->
       {Name, Bitcode, _Alias} ->
         if
           Name == Short ->
-            run_analytics(Server, Analytics, Short, []),
+            spawn(fun() ->
+            run_analytics(Server, Analytics, Short, [])
+                  end),
             From ! {self(), {ok, Bitcode}};
           Name /= Short -> perform_lookup(Server, Analytics, From, Tail, Short)
         end;
       {Name, Bitcode} ->
         if
           Name == Short ->
-            run_analytics(Server, Analytics, Short, []),
+            spawn(fun() ->
+              run_analytics(Server, Analytics, Short, [])
+                  end),
             From ! {self(), {ok, Bitcode}};
           Name /= Short -> perform_lookup(Server, Analytics, From, Tail, Short)
         end
@@ -286,6 +290,11 @@ perform_lookup_inner(Server, Analytics, From, State, Short) ->
 
 % E, Short, Fun, Label, Init
 % emoji:analytics(E, "123", (fun(X) -> X+1 end), "Str", 0).
+% Hit = fun(_, N) -> N+1 end.
+% emoji:analytics(E, "123", Hit, "Str", 0).
+% Last = fun (S, _) -> S end.
+% emoji:analytics(E, "123", Last, "Str", 0).
+%
 % emoji:get_analytics(E, "123").
 % emoji:remove_analytics(E, "123", "Str").
 
