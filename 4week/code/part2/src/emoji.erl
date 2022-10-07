@@ -227,7 +227,7 @@ analytics_label_exists_with_short(Analytics, LookingForLabel, LookingForShort) -
 %base recursive case of the get_analytics main function stack.
 %simply checks for the empty list and then returns results.
 get_analytics(From, Analytics, _LookingForShort, Result) when Analytics == [] ->
-  From ! {self(), {ok, Result}}.
+  From ! {self(), {ok, Result}};
 
 %outer function for the get_analytics function stack main function.
 %Alternates between get_analytic_inner and itself to get try catch structure
