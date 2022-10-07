@@ -203,6 +203,8 @@ test_analytics_creating_and_deleting() ->
       end }.
 
 
+
+
 % emoji:analytics(E, "123", Last, "Str", 0).
 %
 % emoji:get_analytics(E, "123").
