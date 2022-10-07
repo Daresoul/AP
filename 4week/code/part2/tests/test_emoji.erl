@@ -21,7 +21,8 @@ testsuite() ->
          test_delete_ASCIIname(),
          test_alias_ASCII(),
          test_analytics_creating(),
-         test_analytics_creating_multiple()
+         test_analytics_creating_multiple(),
+         test_analytics_creating_exists()
        ]
       }
     ].
@@ -83,7 +84,7 @@ test_alias() ->
         {ok, S} = emoji:start([]),
         emoji:new_shortcode(S, "42", "666"),
         emoji:new_shortcode(S, "420", "6666"),
-        ?assertMatch(ok, emoji:alias(S, "4242", "42")), 
+        ?assertMatch(ok, emoji:alias(S, "42", "4242")), 
         ?assertMatch({ok, _}, emoji:lookup(S, "4242")),
         ?assertMatch({ok, _}, emoji:lookup(S, "42"))
       end }.
@@ -94,7 +95,7 @@ test_alias_ASCII() ->
         {ok, S} = emoji:start([]),
         emoji:new_shortcode(S, "42", "666"),
         emoji:new_shortcode(S, "420", "6666"),
-        ?assertMatch(ok, emoji:alias(S, "Mikkel", "42")), 
+        ?assertMatch(ok, emoji:alias(S, "42", "Mikkel")), 
         ?assertMatch({ok, _}, emoji:lookup(S, "Mikkel")),
         ?assertMatch({ok, _}, emoji:lookup(S, "42"))
       end }.
@@ -165,16 +166,17 @@ test_analytics_creating_multiple() ->
         emoji:new_shortcode(S, "42", "Mikkel"),
         emoji:new_shortcode(S, "19", "Nicolaj"),  
         ?assertMatch(ok, emoji:analytics(S, "42", (fun(X) -> X+1 end), "Str", 0)),
-        ?assertMatch(ok, emoji:analytics(S, "19", (fun(X) -> X+1 end), "Str", 0)),
+        ?assertMatch(ok, emoji:analytics(S, "19", (fun(X) -> X+1 end), "Str", 0))
       end }.
 
 test_analytics_creating_exists() ->
     {"We can create analytics functions and see that they exists in the server state",
       fun () ->
         {ok, S} = emoji:start([]),
-        emoji:new_shortcode(S, "42", "Mikkel"),
+        emoji:new_shortcode(S, "123", "42"),
+        emoji:new_shortcode(S, "42", "123"),
         ?assertMatch(ok, emoji:analytics(S, "42", (fun(X) -> X+1 end), "Str", 0)),
-         
+        ?assertMatch({[{"123","42"},{"42","123"}],[{"Str",_,0,"42"}]}, emoji:get_state(S))
       end }.
 
 
