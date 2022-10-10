@@ -39,6 +39,17 @@ simplify e =
     Oper Times (Const (-1)) (Const a) -> Const(-a)
     Oper Times (Const c1) (Const c2) -> Const(c1*c2)
     Oper op e1 e2 -> Oper op (simplify e1) (simplify e2)
-    -- Let v e body -> case simplify body of
-    Let v e body -> Let v (simplify e) (simplify body)
+    Let v e body -> if searchForVarInTree body v  then Let v (simplify e) (simplify body)
+                                                  else simplify body
     _ -> e
+
+searchForVarInTree :: Expr -> String -> Bool
+searchForVarInTree e s =
+  case e of
+    Const _ -> False
+    Oper _ e1 e2 -> (searchForVarInTree e1 s) || (searchForVarInTree e2 s)
+    Var s2 -> if s == s2  then True
+                          else False
+    Let v e body -> if v == s then if searchForVarInTree e s then True
+                                                             else False
+                              else searchForVarInTree e s || searchForVarInTree body s
