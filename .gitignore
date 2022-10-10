@@ -1,3 +1,66 @@
-.stack/*
-3week/code/part2/.stack-work/*
-3week/code/part2/.stack-work
+# Cabal and GHC build artefacts
+dist/
+dist-newstyle/
+*.hi
+*.o
+
+# Haskell Tool Stack-related
+.stack-work/
+test/integration/tests/**/*.yaml.lock
+
+# Stack's GitHub workflow-related
+_release/
+
+# MkDocs-related
+_site/
+
+# Stan-related
+.hie
+stan.html
+
+# Emacs-related
+.dir-locals.el
+*_flymake.hs
+
+# Vim-related
+*.swp
+*.tag
+
+# IntelliJ IDE-related
+.idea/
+*.iml
+
+# hsenv-related
+.hsenv
+
+# Vagrant-related
+.vagrant/
+
+# HSpec-related
+.hspec-failures
+
+# Unexplained
+*~
+*.imports
+src/highlight.js
+src/style.css
+etc/scripts/stack-scripts.cabal
+better-cache/
+
+.eunit
+*.o
+*.beam
+*.plt
+erl_crash.dump
+.concrete/DEV_MODE
+
+# rebar 2.x
+.rebar
+rel/example_project
+ebin/*.beam
+deps
+
+# rebar 3
+.rebar3
+_build/
+_checkouts/
