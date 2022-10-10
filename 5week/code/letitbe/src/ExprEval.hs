@@ -22,6 +22,7 @@ eval (Let v e body) env = do
   eval body $ M.insert v val env
 evalTop e = eval e M.empty
 
+simplify :: Expr -> Expr
 simplify e =
   case e of
     Oper Plus (Const 0) a -> a
