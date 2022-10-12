@@ -27,6 +27,8 @@ testsuite =
 quickChecks =
   testGroup "QuickCheck tests"
   [ testProperty "Evaluating a simplified expression does not change its meaning"
-    EP.prop_eval_simplify
+    EP.prop_eval_simplify,
+    testProperty "Evaluating a simplified expression does is not longer than the original expression"
+    EP.prop_simplify_length
   ]
 

@@ -9,7 +9,6 @@
 -compile(nowarn_export_all).
 -compile(export_all).
 
-
 %%% A non-symbolic generator for bst, parameterised by key and value generators
 bst(Key, Value) ->
     ?LET(KVS, eqc_gen:list({Key, Value}),
@@ -57,7 +56,10 @@ prop_find_post_present() ->
                        {found, V})).
 
 
-prop_find_post_absent() -> true.
+prop_find_post_absent() ->
+  ?FORALL({K, V, T}, {atom_key(), int_value(), bst(atom_key(), int_value())},
+    eqc:equals(bst:find(K, T)),
+  nothing).
      % ∀ k t. find k (delete k t) === nothing
 
 
@@ -106,3 +108,4 @@ sorted_insert(Key, Value, KVS) -> [{Key, Value} | KVS].
 
 
 %% -- Test all properties in the module: eqc:module(test_bst)
+% c('src/bst'), c('src/test_bst').
