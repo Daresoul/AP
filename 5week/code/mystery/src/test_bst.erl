@@ -9,6 +9,8 @@
 -compile(nowarn_export_all).
 -compile(export_all).
 
+%Look at rhodes
+
 %%% A non-symbolic generator for bst, parameterised by key and value generators
 bst2(Key, Value) ->
   ?LET(KVS, eqc_gen:list({Key, Value}), % Binds a list pair to the variable kvs
@@ -39,6 +41,10 @@ atom_key() -> eqc_gen:elements([a,b,c,d,e,f,g,h]).
 
 int_value() -> eqc_gen:int().
 
+
+getInfoTreeStruckture(T) ->
+    {_, _, _, [_, _, F]} = T,
+    F.
 
 %%% invariant properties
 
@@ -88,8 +94,9 @@ prop_insert_post() ->
 prop_find_post_present() ->
   % ∀ k v t. find k (insert k v t) === {found, v}
   ?FORALL({K, V, T}, {atom_key(), int_value(), bst(atom_key(), int_value())},
+    ?WHENFAIL(io:fwrite('atom1: ~w\nvalue1: ~w\nbst: ~w\n', [ K, V, getInfoTreeStruckture(T)]),
     eqc:equals(find(K, insert(K, V, eqc_symbolic:eval(T))),
-      {found, V})).
+      {found, V}))).
 
 
 prop_find_post_absent() ->
@@ -114,8 +121,8 @@ prop_delete_post_absent() ->
   ).
 
 prop_delete_post_present() ->
-  ?FORALL({K, V, T}, {int_key(), int_key(), bst(atom_key(), int_value())}, % is it an alright test to use?
-    eqc:equals(delete(K, insert(K, V, eqc_symbolic:eval(T))),
+  ?FORALL({K, V, T}, {int_key(), int_key(), bst(atom_key(), int_value())}, % FIXME: is it an alright test to use?
+    ?WHENFAIL(io:fwrite('atom: ~w\nvalue: ~w\nbst: ~w\n', [ K, V, getInfoTreeStruckture(T)]),
       eqc_symbolic:eval(T)
     )
   ).
@@ -197,11 +204,12 @@ prop_insert_insert() ->
     ?FORALL({K1, K2, V1, V2, T},
             {atom_key(), atom_key(), int_value(), int_value(),
              bst(atom_key(), int_value())},
+      ?WHENFAIL(io:fwrite('atom1: ~w\nvalue1: ~w\natom2: ~w\nvalue2: ~w\nbst: ~w\n', [ K1, V1, K2, V2, getInfoTreeStruckture(T)]),
             obs_equals(insert(K1, V1, insert(K2, V2, eqc_symbolic:eval(T))),
                        case K1 =:= K2 of
                            true ->  insert(K1, V1, eqc_symbolic:eval(T));
                            false -> insert(K2, V2, insert(K1, V1, eqc_symbolic:eval(T)))
-                       end)).
+                       end))).
 
 prop_insert_delete() ->
   ?FORALL({K1, K2, V1, T},
@@ -220,8 +228,9 @@ prop_insert_union_left() ->
       bst(atom_key(), int_value()),
       bst(atom_key(), int_value())
     },
+    ?WHENFAIL(io:fwrite('atom: ~w\nvalue: ~w\nT: ~w\nG: ~w\n', [ K, V, getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
     obs_equals(insert(K, V, union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))),
-      union(insert(K, V, eqc_symbolic:eval(G)), eqc_symbolic:eval(T)))).
+      union(insert(K, V, eqc_symbolic:eval(G)), eqc_symbolic:eval(T))))).
 
 prop_insert_union_right() ->
   ?FORALL({K, V, G, T},
@@ -230,8 +239,9 @@ prop_insert_union_right() ->
       bst(atom_key(), int_value()),
       bst(atom_key(), int_value())
     },
+    ?WHENFAIL(io:fwrite('atom: ~w\nvalue: ~w\nT: ~w\nG: ~w\n', [ K, V, getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
     obs_equals(insert(K, V, union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))),
-      union(eqc_symbolic:eval(G), insert(K, V, eqc_symbolic:eval(T))))).
+      union(eqc_symbolic:eval(G), insert(K, V, eqc_symbolic:eval(T)))))).
 
 prop_insert_union() ->
   ?FORALL({K, V, G, T},
@@ -240,8 +250,9 @@ prop_insert_union() ->
       bst(atom_key(), int_value()),
       bst(atom_key(), int_value())
     },
+    ?WHENFAIL(io:fwrite('atom1: ~w\nvalue: ~w\nT: ~w\nG: ~w\n', [ K, V, getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
     obs_equals(insert(K, V, union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))),
-      union(insert(K, V, eqc_symbolic:eval(G)), insert(K, V, eqc_symbolic:eval(T))))).
+      union(insert(K, V, eqc_symbolic:eval(G)), insert(K, V, eqc_symbolic:eval(T)))))).
 
 prop_delete_union() ->
   ?FORALL({K, G, T},
@@ -259,15 +270,19 @@ model(T) -> to_sorted_list(T).
 
 prop_insert_model() ->
     ?FORALL({K, V, T}, {atom_key(), int_value(), bst(atom_key(), int_value())},
+      ?WHENFAIL(io:fwrite('atom: ~w\nvalue: ~w\nbst: ~w\n', [ K, V, getInfoTreeStruckture(T)]),
             equals(model(insert(K, V, eqc_symbolic:eval(T))),
-                   sorted_insert(K, V, delete_key(K, model(eqc_symbolic:eval(T)))))).
+                   sorted_insert(K, V, delete_key(K, model(eqc_symbolic:eval(T)))))
+      )
+    ).
 
 prop_delete_model() ->
   ?FORALL({K, T}, {atom_key(), bst(atom_key(), int_value())},
+    ?WHENFAIL(io:fwrite('atom: ~w\nbst: ~w\n', [ K, getInfoTreeStruckture(T)]),
             equals(model(delete(K, eqc_symbolic:eval(T))),
               delete_key(K, model(eqc_symbolic:eval(T)))
               )
-    ).
+    )).
 
 prop_empty_model() ->
   ?LET(T, empty(),
@@ -278,9 +293,10 @@ prop_empty_model() ->
 
 prop_union_model() ->
   ?FORALL({G,T}, {bst(int_key(), int_value()), bst(int_key(), int_value())},
+    ?WHENFAIL(io:fwrite('T: ~w\nG: ~w\n', [getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
     eqc:equals(model(union(eqc_symbolic:eval(G),eqc_symbolic:eval(T))),
       helper3(model(eqc_symbolic:eval(G)), model(eqc_symbolic:eval(T)))
-    )
+    ))
   ).
 
 helper3(G, T) when T == [] ->
@@ -294,18 +310,13 @@ helper3(G, T) ->
     _ -> helper3(G, Tail)
   end.
 
+prop_to_list_model() ->
+  ?FORALL(T, bst(int_key(), int_value()),
+    ?WHENFAIL(io:fwrite('T: ~w\n', [getInfoTreeStruckture(T)]),
+      eqc:equals(to_sorted_list(eqc_symbolic:eval(T)),
+        helper3([], model(eqc_symbolic:eval(T))))
+    )).
 
-
-%      lists:usort(fun(A, B) ->
-%{Key1, Value1} = A,
-%{Key2, Value2} = B,
-%Key1 =< Key2
-%end, model(G) ++ model(T))
-%
-%
-%
-%
-%
 prop_find_model() ->
   ?FORALL({K, T}, {int_key(), bst(int_key(), int_value())},
     equals(find(eqc_symbolic:eval(K), eqc_symbolic:eval(T)),
