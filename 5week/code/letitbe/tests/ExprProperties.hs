@@ -39,7 +39,7 @@ prop_eval_simplify :: Expr -> Property
 prop_eval_simplify x = E.eval (E.simplify x) M.empty === E.eval x M.empty
 
 prop_simplify_length :: Expr -> Property
-prop_simplify_length x = count_expressions (E.simplify x) === count_expressions x
+prop_simplify_length x = (count_expressions (E.simplify x) <= count_expressions x) === True
 
 count_expressions :: Expr -> Int
 count_expressions e =
