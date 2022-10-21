@@ -20,6 +20,12 @@ testsuite =
     , testCase "Simplify: x + (2 + 2)"
       (Oper Plus (Var "x") (Const 4) @=?
           E.simplify (Oper Plus (Var "x") (Oper Plus (Const 2) (Const 2))))
+    , testCase "Let test for searchForVarInTree variable exp not eval"
+          (Const 4 @=?
+              E.simplify (Let "x" (Const 5) (Oper Plus (Const 2) (Const 2))))
+    , testCase "Let test for searchForVarInTree variable exp eval"
+          (Let "x" (Const 5) (Oper Plus (Var "x") (Const 6)) @=?
+              E.simplify (Let "x" (Const 5) (Oper Plus (Var "x") (Oper Times (Const 2) (Const 3)))))
     ]
   , quickChecks
   ]
@@ -27,6 +33,8 @@ testsuite =
 quickChecks =
   testGroup "QuickCheck tests"
   [ testProperty "Evaluating a simplified expression does not change its meaning"
-    EP.prop_eval_simplify
+    EP.prop_eval_simplify,
+    testProperty "Evaluating a simplified expression does is not longer than the original expression"
+    EP.prop_simplify_length
   ]
 

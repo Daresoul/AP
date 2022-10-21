@@ -9,73 +9,80 @@
 -compile(nowarn_export_all).
 -compile(export_all).
 
-%Look at rhodes
-
-%%% A non-symbolic generator for bst, parameterised by key and value generators
-bst2(Key, Value) ->
-  ?LET(KVS, eqc_gen:list({Key, Value}), % Binds a list pair to the variable kvs
-    lists:foldl(fun({K,V}, T) -> insert(K, V, T) end,   % Call anonymous function with key value pair and T
-                                                        % Then insert KV into T, with a starting tree empty
-                                                        % and our ealier KVS list as each pair.
-      empty(),
-      KVS)).
-
 bst(Key, Value) ->
   ?LAZY(
-    oneof([
-      ?LET(KVS, eqc_gen:list({Key, Value}), % Binds a list pair to the variable kvs
-      {call, lists, foldl,
-        [
+    oneof([ % oneof and the lazy could be excluded as there are only one option to get
+      ?LET(KVS, eqc_gen:list(27,{Key, Value}), % Binds a list pair to the variable kvs
+      {call, lists, foldl, [  % Symbolic representation of the foldl
+        % Could in the future be representated as a symbolic call
+        % But chose not to as i contains no data that cant be seen in the code.
           fun({K,V}, T) -> insert(K, V, T) end,
-          empty(),
-          KVS
-        ]
-      }
-    )
-    ])
+          empty(), KVS
+        ]})])
   ).
 
 % example key and value generators
-int_key() -> eqc_gen:int().
-atom_key() -> eqc_gen:elements([a,b,c,d,e,f,g,h]).
+% Since the generators seem to function correctly we havent changed them
+int_key() -> eqc_gen:int().   % Since keys are evaluated as numeric value having an int key in a atom tree seems to be fine.
+% Added a few more atoms to be able to create larger trees
+atom_key() -> eqc_gen:elements([a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z]).
+int_value() -> eqc_gen:int(). % Havent tried any specific other values like strings or atoms as values.
 
-int_value() -> eqc_gen:int().
 
-
+% Short function to gain relevant data from a call to a function
 getInfoTreeStruckture(T) ->
     {_, _, _, [_, _, F]} = T,
     F.
 
-%%% invariant properties
+%%% TESTING OF GENERATORS
+prop_measure() ->
+  ?FORALL(T,bst(atom_key(), int_value()),
+    collect(
+      bst:size(
+          eqc_symbolic:eval(T)
+      ),
+      eqc:equals(                   %To get a valid prop for the second argument of collect.
+        eqc_symbolic:eval(T),
+        eqc_symbolic:eval(T))
+    )
+  ).
 
+%%% invariant properties
 % all generated bst are valid
 prop_arbitrary_valid() ->
     ?FORALL(T, bst(atom_key(), int_value()),
-            valid(eqc_symbolic:eval(T))).
+      ?WHENFAIL(io:fwrite('T: ~w\n', [eqc_symbolic:eval(T)]),
+            valid(eqc_symbolic:eval(T)))).
 
 % if we insert into a valid tree it stays valid
 prop_insert_valid() ->
     ?FORALL({K, V, T}, {atom_key(), int_value(), bst(atom_key(), int_value())},
-            valid (insert(K, V, eqc_symbolic:eval(T)))).
+      ?WHENFAIL(io:fwrite('K: ~w\nV: ~w\nT: ~w\n', [K, V, eqc_symbolic:eval(T)]),
+            valid (insert(K, V, eqc_symbolic:eval(T))))).
 
 % if we insert into a valid tree it stays valid
 prop_empty_valid() ->
-  ?FORALL(T, empty(), valid(eqc_symbolic:eval(T))).
+  ?FORALL(T, empty(), % Should be using the onceonly
+    ?WHENFAIL(io:fwrite('T: ~w\n', [eqc_symbolic:eval(T)]),
+    valid(eqc_symbolic:eval(T)))).
 
 prop_delete_valid() ->
   ?FORALL({K, V, T}, {atom_key(), int_value(), empty()},
+    ?WHENFAIL(io:fwrite('K: ~w\nV: ~w\nT: ~w\n', [K, V, eqc_symbolic:eval(T)]),
     valid(delete(K, insert(K, V, eqc_symbolic:eval(T))))
-  ).
+  )).
 
 prop_delete_valid2() ->
   ?FORALL({K, V, T}, {atom_key(), int_value(), bst(atom_key(), int_value())},
+    ?WHENFAIL(io:fwrite('K: ~w\nV: ~w\nT: ~w\n', [K, V, eqc_symbolic:eval(T)]),
     valid(delete(K, insert(K, V, eqc_symbolic:eval(T))))
-  ).
+  )).
 
 prop_union_valid() ->
   ?FORALL({G, T}, {bst(atom_key(), int_value()), bst(atom_key(), int_value())},
+    ?WHENFAIL(io:fwrite('T: ~w\nG: ~w\nGT: ~w\n', [eqc_symbolic:eval(T), eqc_symbolic:eval(G), union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))]),
     valid(union(eqc_symbolic:eval(G), eqc_symbolic:eval(T)))
-  ).
+  )).
 
 % eqc:quickcheck(test_bst:prop_deletee_valid()).
 
@@ -121,39 +128,38 @@ prop_delete_post_absent() ->
   ).
 
 prop_delete_post_present() ->
-  ?FORALL({K, V, T}, {int_key(), int_key(), bst(atom_key(), int_value())}, % FIXME: is it an alright test to use?
+  ?FORALL({K, V, T}, {int_key(), int_key(), bst(atom_key(), int_value())},
     ?WHENFAIL(io:fwrite('atom: ~w\nvalue: ~w\nbst: ~w\n', [ K, V, getInfoTreeStruckture(T)]),
-      eqc_symbolic:eval(T)
+      eqc:equals(delete(K, insert(K, V, eqc_symbolic:eval(T))), % Using the insert to make sure the key exists in the tree
+        eqc_symbolic:eval(T))
     )
   ).
 
 prop_union_post_empty() ->
-  ?LET({G, T}, {empty(), empty()}, % hvad er forskellen på LET og forall denne kører stadig 100 gange????
+  ?FORALL({G, T}, {empty(), empty()}, % Should be a onceonly since it is gonna be the same each time
     eqc:equals(union(G, T),
       empty()
     )
   ).
 
 prop_union_post() ->
-  ?FORALL({T, G}, {bst(int_key(), int_value()), bst(atom_key(), int_value())}, % hvad er forskellen på LET og forall denne kører stadig 100 gange????
-    helper(eqc_symbolic:eval(T), eqc_symbolic:eval(G))
+  ?FORALL({T, G}, {bst(int_key(), int_value()), bst(atom_key(), int_value())},
+    helper(eqc_symbolic:eval(T), eqc_symbolic:eval(G)) %Using serpate function to check if all keys are in the union
   ).
 
-prop_union_post2() -> % TODO: find out what the hell is going on
-  ?FORALL({T, G}, {bst(int_key(), int_value()), bst(atom_key(), int_value())}, % hvad er forskellen på LET og forall denne kører stadig 100 gange????
-    helper2(eqc_symbolic:eval(T), eqc_symbolic:eval(G))
-  ).
+prop_union_post2() ->
+  ?FORALL({T, G}, {bst(int_key(), int_value()), bst(atom_key(), int_value())},
+    ?WHENFAIL(io:fwrite('T: ~w\nG: ~w\n', [ getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
+      begin
+        GT = union(eqc_symbolic:eval(G), eqc_symbolic:eval(T)),
+        TG = union(eqc_symbolic:eval(T), eqc_symbolic:eval(G)),
 
-helper2(T,G) ->
-  GT = union(G, T),
-  TG = union(T, G),
+        eqc:equals(to_sorted_list(GT),
+        to_sorted_list(TG))
+      end
+  )).
 
-  GTL = to_sorted_list(GT),
-  TGL = to_sorted_list(TG),
-
-  GTL == TGL.
-
-
+% Takes 2 trees and checks if the list of all keys of each tree are in the union
 helper(T, G) ->
   GT = union(T, G),
 
@@ -170,8 +176,9 @@ helper(T, G) ->
                           end, Keys2),
 
   TExistsInGT and GExistsInGT.
-%%% -- metamorphic properties
 
+
+%%% -- metamorphic properties
 %% the size is larger after an insert
 prop_size_insert() ->
     % ∀ k v t. size (insert k v t) >= size t
@@ -181,21 +188,20 @@ prop_size_insert() ->
 prop_size_delete() ->
   % ∀ k v t. size (insert k v t) >= size t
   ?FORALL({K, T}, {atom_key(), bst(atom_key(), int_value())},
-    bst:size(delete(K, eqc_symbolic:eval(T))) =< bst:size(eqc_symbolic:eval(T))).
+    bst:size(delete(K, eqc_symbolic:eval(T))) =< bst:size(eqc_symbolic:eval(T))). % Just checking the size is smaller than the original size
 
 prop_size_union() ->
   % ∀ k v t. size (insert k v t) >= size t
   ?FORALL({G, T}, {bst(int_key(), int_value()), bst(atom_key(), int_value())},
     eqc:equals(bst:size(union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))),
-      case eqc_symbolic:eval(T) of
+      case eqc_symbolic:eval(T) of  % A bit complex: If T is a leave then the size should be the size of G
         leaf ->  bst:size(eqc_symbolic:eval(G));
-        {branch, _, _, _, _} -> case eqc_symbolic:eval(G) of
+        {branch, _, _, _, _} -> case eqc_symbolic:eval(G) of % If T is a tree then we should check if G is a leaf
                    leaf -> bst:size(eqc_symbolic:eval(T));
                    {branch, _, _, _, _} -> bst:size(eqc_symbolic:eval(G)) + bst:size(eqc_symbolic:eval(T))
+                                % If G is not a leaf then it is the size of the 2 unions.
                  end
       end)).
-
-
 
 obs_equals(T1, T2) ->
      eqc:equals(to_sorted_list(T1), to_sorted_list(T2)).
@@ -216,7 +222,7 @@ prop_insert_delete() ->
     {atom_key(), atom_key(), int_value(),
       bst(atom_key(), int_value())},
     obs_equals(insert(K1, V1, delete(K2, eqc_symbolic:eval(T))),
-      case K1 =:= K2 of
+      case K1 =:= K2 of % It matters if the key is already existing or not, and we therefore have 2 things that can happen
         true ->  insert(K1, V1, eqc_symbolic:eval(T));
         false -> delete(K2, insert(K1, V1, eqc_symbolic:eval(T)))
       end)).
@@ -228,9 +234,12 @@ prop_insert_union_left() ->
       bst(atom_key(), int_value()),
       bst(atom_key(), int_value())
     },
-    ?WHENFAIL(io:fwrite('atom: ~w\nvalue: ~w\nT: ~w\nG: ~w\n', [ K, V, getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
+    ?WHENFAIL(io:fwrite('atom: ~w\nvalue: ~w\nT: ~w\nG: ~w\n',
+      [ K, V, getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
     obs_equals(insert(K, V, union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))),
       union(insert(K, V, eqc_symbolic:eval(G)), eqc_symbolic:eval(T))))).
+% Would like to check that the a union with an insert is the same as the insert of an already existing union.
+% Here we only do it on the left side
 
 prop_insert_union_right() ->
   ?FORALL({K, V, G, T},
@@ -242,6 +251,8 @@ prop_insert_union_right() ->
     ?WHENFAIL(io:fwrite('atom: ~w\nvalue: ~w\nT: ~w\nG: ~w\n', [ K, V, getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
     obs_equals(insert(K, V, union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))),
       union(eqc_symbolic:eval(G), insert(K, V, eqc_symbolic:eval(T)))))).
+% Would like to check that the a union with an insert is the same as the insert of an already existing union.
+% Here we only do it on the right side
 
 prop_insert_union() ->
   ?FORALL({K, V, G, T},
@@ -253,6 +264,8 @@ prop_insert_union() ->
     ?WHENFAIL(io:fwrite('atom1: ~w\nvalue: ~w\nT: ~w\nG: ~w\n', [ K, V, getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
     obs_equals(insert(K, V, union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))),
       union(insert(K, V, eqc_symbolic:eval(G)), insert(K, V, eqc_symbolic:eval(T)))))).
+% Would like to check that the a union with an insert is the same as the insert of an already existing union.
+% This time if we insert the same element into both trees is should overlap, and the same tree made.
 
 prop_delete_union() ->
   ?FORALL({K, G, T},
@@ -261,8 +274,11 @@ prop_delete_union() ->
       bst(atom_key(), int_value()),
       bst(atom_key(), int_value())
     },
+    ?WHENFAIL(io:fwrite('atom: ~w\nG: ~w\nT: ~w\n', [ K, getInfoTreeStruckture(G), getInfoTreeStruckture(T)]),
     obs_equals(delete(K, union(eqc_symbolic:eval(G), eqc_symbolic:eval(T))),
-      union(delete(K, eqc_symbolic:eval(G)), delete(K, eqc_symbolic:eval(T))))).
+      union(delete(K, eqc_symbolic:eval(G)), delete(K, eqc_symbolic:eval(T)))))).
+% If we delete K from each of the trees and then union the K should be absent, and it should also if we delete it
+% From the union that has already been made.
 
 %%% -- Model based properties
 model(T) -> to_sorted_list(T).
@@ -285,7 +301,7 @@ prop_delete_model() ->
     )).
 
 prop_empty_model() ->
-  ?LET(T, empty(),
+  ?FORALL(T, empty(), % Should have been a onceonly as no data changes.
     equals(model(T),
       model(leaf)
     )
@@ -296,9 +312,13 @@ prop_union_model() ->
     ?WHENFAIL(io:fwrite('T: ~w\nG: ~w\n', [getInfoTreeStruckture(T), getInfoTreeStruckture(G)]),
     eqc:equals(model(union(eqc_symbolic:eval(G),eqc_symbolic:eval(T))),
       helper3(model(eqc_symbolic:eval(G)), model(eqc_symbolic:eval(T)))
+      % using the model functions given to create a union
+      % as a list
     ))
   ).
 
+% Takes 2 lists and calls sorted insert on each element of the second unless it already exists
+% in the list, and then return the first tree.
 helper3(G, T) when T == [] ->
   G;
 
@@ -310,20 +330,22 @@ helper3(G, T) ->
     _ -> helper3(G, Tail)
   end.
 
-prop_to_list_model() ->
+prop_to_sorted_list_model() ->
   ?FORALL(T, bst(int_key(), int_value()),
     ?WHENFAIL(io:fwrite('T: ~w\n', [getInfoTreeStruckture(T)]),
-      eqc:equals(to_sorted_list(eqc_symbolic:eval(T)),
+      eqc:equals(model(eqc_symbolic:eval(T)),
+        % The model of the implementation should give the
+        % same as taking each element and putting it into a sorted insert
         helper3([], model(eqc_symbolic:eval(T))))
     )).
 
 prop_find_model() ->
   ?FORALL({K, T}, {int_key(), bst(int_key(), int_value())},
     equals(find(eqc_symbolic:eval(K), eqc_symbolic:eval(T)),
-      case model(eqc_symbolic:eval(T)) of
+      case model(eqc_symbolic:eval(T)) of % To check if the list is empty
         [] -> nothing;
         _ ->
-          case lists:keyfind(K, 1, model(eqc_symbolic:eval(T))) of
+          case lists:keyfind(K, 1, model(eqc_symbolic:eval(T))) of % Does K exist in the model?
             {_Key, Value} -> {found, Value};
             false -> nothing
           end
@@ -339,7 +361,4 @@ sorted_insert(Key, Value, [{K, V} | Rest]) when K < Key ->
     [{K, V} | sorted_insert(Key, Value, Rest)];
 sorted_insert(Key, Value, KVS) -> [{Key, Value} | KVS].
 
-
-
 %% -- Test all properties in the module: eqc:module(test_bst)
-% c('src/bst'), c('src/test_bst').

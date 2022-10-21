@@ -8,6 +8,7 @@ import qualified Data.Map.Strict as M
 
 exprN :: Int -> [String] -> Gen Expr
 exprN 0 [] = fmap Const arbitrary
+
 exprN 0 list =
   oneof [
     fmap Const arbitrary
