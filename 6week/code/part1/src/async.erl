@@ -16,6 +16,8 @@ waiter(Aid) ->
   State = poll(Aid),
   case State of
     nothing -> waiter(Aid);
+    {exception, Reason} ->
+      throw(Reason);
     _ -> State
   end.
 
