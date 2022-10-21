@@ -9,8 +9,29 @@ new(Fun, Arg) ->
 wait(Aid) ->
   waiter(Aid).
 poll(Aid) -> gen_server:call(Aid, poll).
-wait_catch(Aid) -> nope.
-wait_any(Aids) -> nope.
+wait_catch(Aid) ->
+  try
+    waiter(Aid)
+  catch
+      _:Reason  -> {exception, Reason}
+  end.
+
+wait_any(Aids) ->
+  Self = self(),
+  recursive(Aids, Self),
+
+  receive
+    {ok, State} -> {ok, State};
+    A -> A
+  end.
+
+recursive(Aids, _Self) when Aids == [] ->
+  [];
+
+recursive(Aids, Self) ->
+  [Head|Tail] = Aids,
+  gen_server:call(Head, {wait_any, Self}),
+  recursive(Tail, Self).
 
 waiter(Aid) ->
   State = poll(Aid),
@@ -34,15 +55,22 @@ handle_call(Msg, Aid, State) ->
   case Msg of
     poll ->
       ReplyMsg = State,
-      {reply, ReplyMsg, State}
+      {reply, ReplyMsg, State};
+    {wait_any, Aid2} ->
+      spawn_link(fun() ->
+        State3 = waiter(Aid2),
+        gen_server:reply(Aid2, {ok,State, State3})
+                 end),
+      {reply, ok, State}
   end.
 
-handle_cast(Msg, _State) ->
+handle_cast(Msg, State) ->
   case Msg of
     {worker, {ok, Res}} ->
       {noreply, {ok, Res}};
     {worker, {exception, Reason}} ->
       {noreply, {exception, Reason}}
+
   end.
 
 init(_Args) ->
@@ -50,6 +78,8 @@ init(_Args) ->
 
 -ifdef(comment).
 c(async).
-Aid = async:new(fun(X) -> timer:sleep(5000) end,42).
+Aid = async:new(fun(X) -> timer:sleep(X), 5 end,1000).
+async:wait_any([Aid]).
 async:wait(Aid).
+async:poll(Aid).
 -endif.
