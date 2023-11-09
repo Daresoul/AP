@@ -1,0 +1,56 @@
+spaceTab :: GenParser Char st ()
+spaceTab = try (do      tab
+                        spaceTab)
+        <|> try (do     endOfLine
+                        spaceTab)
+        <|> try (do     space
+                        spaceTab)
+        <|> try (do     spaces
+                        return ())
+
+-- parses the list of statments that makes up a program.                                    
+erule :: GenParser Char st EGrammar
+erule = do  spaceTab
+            s1 <- erule
+            spaceTab
+            eruleL <- erulesL s1
+            spaceTab
+            eof
+            return eruleL
+
+LHSStart :: GenParser Char st RLHS
+LHSStart = do   n <- name
+                optType <- OptType
+                LHSEnd (Just optType)
+        <|> do  n <- name
+                LHSEnd (Nothing)
+
+LHSEnd :: GenParser Char st RLHS
+LHSEnd type = do    String "::="
+                    Char '.'
+                    return (n, RPlain, type)
+
+name :: GenParser Char st String
+name = try (do  c <- satisfy (\c -> isLetter c || c == '_')
+                s <- many1 (satisfy (\c -> isAlphaNum c || c == '_' || isDigit c))
+                return ([c] ++ s))
+        <|> do  c <- satisfy (\c -> isLetter c || c == '_')
+                return [c]
+
+OptType :: GenParser Char st Type
+OptType = do    String "{:"
+                -- Anychar
+                String "}"
+
+action :: GenParser Char st Action
+action = do char '{'
+            a <- actions
+            char '}'
+            return a
+
+actions :: GenParser Char st Action
+actions = do    string "Cst"
+                space
+                char '_'
+                number <- many1 (satisfy (\c -> isDigit c))
+                return (ACst ((++) "_" number))
